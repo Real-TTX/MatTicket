@@ -19,6 +19,9 @@ public sealed class EntraSettings
 
     public string CallbackPath { get; set; } = "/signin-entra";
 
+    /// <summary>Accounts of the tenant that are in no mapped group may still sign in as requesters (portal only). Off: they get no access.</summary>
+    public bool UnmappedAsRequesters { get; set; }
+
     public bool HasSecret => ClientSecretProtected.Length > 0;
 
     /// <summary>Everything a sign-in needs is filled in (whether it is right, only Microsoft can say).</summary>
@@ -85,6 +88,13 @@ public sealed class AiSettings
     public int TimeoutSeconds { get; set; } = 280;
 }
 
+/// <summary>Rules for tickets that are not about one form.</summary>
+public sealed class TicketSettings
+{
+    /// <summary>Service staff create tickets (by hand) only in the departments of their teams; administrators everywhere. Moving stays allowed.</summary>
+    public bool AgentsOnlyOwnDepartments { get; set; }
+}
+
 /// <summary>What the public pages say about who runs them.</summary>
 public sealed class SiteSettings
 {
@@ -118,6 +128,7 @@ public sealed class SettingStore(IServiceScopeFactory scopes)
     public const string Mail = "Mail";
     public const string Ai = "Ai";
     public const string Site = "Site";
+    public const string Tickets = "Tickets";
     public const string VisitorSalt = "Ai.VisitorSalt";
 
     public static string Layout(CrmEntity entity) => "Crm.Layout." + entity;

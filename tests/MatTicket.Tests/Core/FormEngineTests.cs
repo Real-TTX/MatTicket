@@ -49,17 +49,17 @@ public sealed class FormEngineTests
     public void Required_questions_and_formats_are_checked()
     {
         var step = Sample().Step("a")!;
-        var errors = FormEngine.Validate(step, new FormAnswers { ["bereich"] = "", ["email"] = "keine-mail" }, []);
+        var errors = FormEngine.Validate(step, new FormAnswers { ["bereich"] = "", ["email"] = "keine-mail" }, FormLists.Empty);
         Assert.Contains("a_bereich", errors.Keys);
         Assert.Contains("a_email", errors.Keys);
-        Assert.Empty(FormEngine.Validate(step, new FormAnswers { ["bereich"] = "pc", ["email"] = "a@b.de" }, []));
+        Assert.Empty(FormEngine.Validate(step, new FormAnswers { ["bereich"] = "pc", ["email"] = "a@b.de" }, FormLists.Empty));
     }
 
     [Fact]
     public void A_choice_that_is_not_offered_is_refused()
     {
         var step = Sample().Step("a")!;
-        Assert.Contains("a_bereich", FormEngine.Validate(step, new FormAnswers { ["bereich"] = "toaster" }, []).Keys);
+        Assert.Contains("a_bereich", FormEngine.Validate(step, new FormAnswers { ["bereich"] = "toaster" }, FormLists.Empty).Keys);
     }
 
     [Fact]
@@ -106,6 +106,44 @@ public sealed class FormEngineTests
     public void A_subject_template_shows_the_labels_of_the_answers()
     {
         var def = Sample();
-        Assert.Equal("Drucker: kaputt", FormEngine.FillTemplate(def, "{bereich}: {kurz}", new FormAnswers { ["bereich"] = "drucker", ["kurz"] = "kaputt" }, []));
+        Assert.Equal("Drucker: kaputt", FormEngine.FillTemplate(def, "{bereich}: {kurz}", new FormAnswers { ["bereich"] = "drucker", ["kurz"] = "kaputt" }, FormLists.Empty));
+    }
+}
+
+public sealed class FormVisibilityTests
+{
+    private static readonly FormStep Step = new()
+    {
+        Id = "s",
+        Blocks =
+        [
+            new FormBlock { Id = "a", Type = BlockTypes.Text, Key = "name", Label = "Name", Required = true, Visibility = Visibilities.Guests },
+            new FormBlock { Id = "b", Type = BlockTypes.Customer, Key = "kunde", Label = "Kunde", Required = true, Visibility = Visibilities.Staff },
+        ],
+    };
+
+    [Fact]
+    public void A_block_the_viewer_does_not_see_is_neither_read_nor_required()
+    {
+        bool Requester(FormBlock b) => Visibilities.Sees(b.Visibility, FormViewer.SignedIn);
+        var answers = FormEngine.Read(Step, name => name == "a_kunde" ? ["7"] : [], Requester);
+        Assert.False(answers.ContainsKey("kunde"));
+        Assert.Empty(FormEngine.Validate(Step, answers, FormLists.Empty, Requester));
+    }
+
+    [Fact]
+    public void Staff_choose_only_customers_of_the_list()
+    {
+        var lists = new FormLists([], [new FormOption { Value = "1", Label = "Musterbau" }]);
+        bool Staff(FormBlock b) => Visibilities.Sees(b.Visibility, FormViewer.Staff);
+        Assert.Empty(FormEngine.Validate(Step, new FormAnswers { ["kunde"] = "1" }, lists, Staff));
+        Assert.Contains("a_kunde", FormEngine.Validate(Step, new FormAnswers { ["kunde"] = "99" }, lists, Staff).Keys);
+    }
+
+    [Fact]
+    public void The_customer_block_is_always_for_staff_only()
+    {
+        var def = new FormDefinition { Start = "s", Steps = [new FormStep { Id = "s", Blocks = [new FormBlock { Id = "b", Type = BlockTypes.Customer, Key = "kunde", Label = "Kunde" }] }] };
+        Assert.Equal(Visibilities.Staff, FormEngine.Clean(def).Steps[0].Blocks[0].Visibility);
     }
 }

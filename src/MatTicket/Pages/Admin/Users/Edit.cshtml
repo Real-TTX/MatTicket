@@ -15,7 +15,7 @@
                     <mt-input for="Input.DisplayName" label="Name" required="true" autocomplete="off" />
                     <mt-input for="Input.Email" label="E-Mail-Adresse (Anmeldename)" type="email" inputmode="email" required="true" autocomplete="off" />
                     <mt-input for="Input.Phone" label="Telefon" type="tel" />
-                    <mt-select for="Input.Role" label="Rolle" items="roles" hint="Administratoren richten alles ein (Formulare, Kategorien, Teams, CRM, Sync, KI, Anmeldung). Service-Mitarbeiter bearbeiten die Tickets ihrer Abteilungen und pflegen das CRM." />
+                    <mt-select for="Input.Role" label="Rolle" items="roles" hint="Administratoren richten alles ein (Formulare, Kategorien, Teams, CRM, Sync, KI, Anmeldung). Service-Mitarbeiter bearbeiten die Tickets ihrer Abteilungen und pflegen das CRM. Anfragende sehen nur das Hilfe-Portal und ihre eigenen Anfragen." />
                     <mt-switch for="Input.IsActive" label="Darf sich anmelden" full="true" />
                     <mt-input for="Input.Password" label="@(Model.Account is null ? "Passwort (Notzugang)" : "Neues Passwort")" type="password" autocomplete="new-password"
                               hint="@(Model.Account is null ? "Mindestens 10 Zeichen. Leer lassen, wenn sich die Person nur mit Microsoft anmeldet." : "Leer lassen, um das Passwort zu behalten. Mit einem neuen Passwort werden alle Sitzungen der Person beendet.")" />

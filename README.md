@@ -32,6 +32,9 @@ Tickets landen in der richtigen Abteilung und im richtigen Team, Kunden kommen p
 - **Ablauf:** Schritte als Knoten, Wege als Pfeile mit **Bedingungen** (ist gleich, enthält, ist eins von, leer, größer …); Schritt-Arten *Seite*, *KI-Antwort*, *Ticket erstellen*, *Ende ohne Ticket*
 - Antworten füllen Name, E-Mail, Betreff, Beschreibung oder Priorität des Tickets; der Betreff kann eine Vorlage sein (`{bereich}: {kurz}`)
 - Prüfung vor dem Veröffentlichen, **Versionen** (jede veröffentlichte Fassung bleibt lesbar), Vorschau des Entwurfs, Hilfe-Portal unter `/hilfe`
+- **Wer was sieht, ist konfigurierbar:** Zugang pro Formular (öffentlich, nur angemeldet, nur Service, bestimmte Entra-Gruppen), Kategorien nur für Gruppen, Sichtbarkeit pro Baustein (alle, Gäste, Angemeldete, Service)
+- **Anmelden zum Anfragen:** Mitarbeiter melden sich (z. B. mit Microsoft) als *Anfragende* an; Name und E-Mail kommen aus dem Konto statt aus dem Formular, ihre Anfragen stehen unter *Meine Anfragen*
+- Baustein **Kunde (CRM)**: der Service erfasst eine Anfrage für einen Kunden – die Kundenliste sieht nur der Service, das ist im Code festgelegt
 
 **KI**
 - **Profile** statt einzelner Schlüssel (OpenAI, Mistral (EU), DeepSeek, OpenRouter, eigener Server, **ChatGPT-Konto mit Code-Anmeldung**), genau eins aktiv, „Modelle laden“ fragt den Anbieter
@@ -47,7 +50,7 @@ Tickets landen in der richtigen Abteilung und im richtigen Team, Kunden kommen p
 
 **Anmeldung**
 - **Microsoft Entra ID** zuerst („Mit Microsoft anmelden“), das Passwort bleibt als Notzugang; Einrichtung im Admin-Bereich ohne Neustart
-- Gruppen → Rollen; nur Mitglieder eingetragener Gruppen kommen hinein. Fehler werden auf der Anmeldeseite erklärt, eine falsche Einrichtung legt die App nie lahm
+- Gruppen → Rollen (Administrator, Service, Anfragender); nur Mitglieder eingetragener Gruppen kommen hinein – oder auf Wunsch alle anderen Konten des Tenants als Anfragende. Fehler werden auf der Anmeldeseite erklärt, eine falsche Einrichtung legt die App nie lahm
 - Lokale Konten mit zweitem Faktor (Authenticator-App), Sitzungen in der Datenbank
 
 **App**
@@ -108,7 +111,7 @@ dotnet test MatTicket.slnx
 ```
 
 Mit `MATTICKET_TEST_DB=Host=localhost;Port=2742;Username=matticket;Password=matticket` laufen auch die Integrationstests gegen die echte Datenbank.
-`tests/e2e/pwa-check.js` prüft die PWA in Edge (Service Worker, Offline-Kopie, Offline-Seite), `tests/e2e/screens.js` macht die Screenshots.
+`tests/e2e/pwa-check.js` prüft die PWA in Edge (Service Worker, Offline-Kopie, Offline-Seite), `tests/e2e/portal-access.js` wer im Portal was sieht (Gast, Anfragender, Service), `tests/e2e/screens.js` macht die Screenshots.
 
 ASP.NET Core 10 mit Razor Pages, EF Core 10 auf PostgreSQL 17. Die Geschäftslogik liegt in statischen Klassen (`src/MatTicket/Logic`), die jede Berechtigung
 selbst prüfen; Seiten fragen nie selbst die Datenbank. Mehr in [CLAUDE.md](CLAUDE.md).

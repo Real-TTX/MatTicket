@@ -4,7 +4,7 @@
     Layout = "_Public";
 }
 
-<h1>Wobei können wir helfen?</h1>
+<h1>@(Model.Viewer.SignedIn ? $"Hallo {Model.Viewer.Name}, wobei können wir helfen?" : "Wobei können wir helfen?")</h1>
 @if (!string.IsNullOrWhiteSpace(Model.Site.PortalIntro))
 {
     <p class="mat-muted">@Model.Site.PortalIntro</p>
@@ -17,15 +17,41 @@
 else
 {
     <ul class="mat-itemlist mt-formlist">
-        @foreach (var f in Model.Forms)
+        @foreach (var (f, access) in Model.Forms)
         {
+            var locked = access == FormAccessResult.NeedsSignIn;
             <li class="mat-item">
                 <a class="mat-item__main" href="/@f.Slug">
-                    <span class="mat-item__lead">@Ui.Icon("help")</span>
-                    <span class="mat-item__body"><span class="mat-item__title">@f.Name</span><span class="mat-item__text">@f.Description</span></span>
+                    <span class="mat-item__lead">@Ui.Icon(locked ? "lock" : "help")</span>
+                    <span class="mat-item__body"><span class="mat-item__title">@f.Name</span><span class="mat-item__text">@(locked ? "Nach der Anmeldung. " : "")@f.Description</span></span>
                     <span class="mat-item__end">@Ui.Icon("chevron-right", "mat-item__chevron")</span>
                 </a>
             </li>
         }
     </ul>
+}
+
+@if (Model.Viewer.SignedIn)
+{
+    <h2 id="meine">Meine Anfragen</h2>
+    @if (Model.Mine.Count == 0)
+    {
+        <p class="mat-muted">Sie haben mit Ihrem Konto noch keine Anfrage gestellt.</p>
+    }
+    else
+    {
+        <ul class="mat-itemlist">
+            @foreach (var t in Model.Mine)
+            {
+                var tone = t.Status switch { TicketStatus.Waiting => "warn", TicketStatus.Resolved => "ok", TicketStatus.Closed => "plain", _ => "info" };
+                <li class="mat-item">
+                    <a class="mat-item__main" href="/t/@t.Token.ToString("N")">
+                        <span class="mat-item__lead">@Ui.Icon("ticket")</span>
+                        <span class="mat-item__body"><span class="mat-item__title">@t.Subject</span><span class="mat-item__text">@t.Number · @Fmt.Moment(t.CreateDate)</span></span>
+                        <span class="mat-item__end">@Ui.Pill(Labels.ForCustomer(t.Status), tone)</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
 }

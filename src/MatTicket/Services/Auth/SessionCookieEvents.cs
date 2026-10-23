@@ -36,7 +36,8 @@ public sealed class SessionCookieEvents(SessionCache sessions) : CookieAuthentic
 
     public override Task RedirectToAccessDenied(RedirectContext<CookieAuthenticationOptions> context)
     {
-        context.Response.Redirect("/Account/AccessDenied");
+        // A requester has no business in the work of the service: their place is the portal with their own requests.
+        context.Response.Redirect(context.HttpContext.User.IsInRole(nameof(Data.Entities.UserRole.Requester)) ? "/hilfe" : "/Account/AccessDenied");
         return Task.CompletedTask;
     }
 

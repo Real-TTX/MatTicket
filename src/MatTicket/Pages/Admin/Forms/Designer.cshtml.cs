@@ -55,6 +55,8 @@ public sealed class DesignerModel(Biz biz) : PageModelBase
             },
             operators = FormEngine.Operators.Select(o => new { value = o.Value, label = o.Label }),
             mapTargets = MapTargets.All.Select(m => new { value = m.Value, label = m.Label }),
+            visibilities = Visibilities.All.Select(v => new { value = v.Value ?? "", label = v.Label }),
+            accountData = form.AccountData.ToString(),
             priorities = Enum.GetValues<TicketPriority>().Select(p => new { value = p.ToString(), label = UiKit.Labels.Of(p) }),
             questions = await CategoryLogic.QuestionBlocksAsync(biz),
             categories = (await CategoryLogic.ChoicesAsync(biz)).Select(c => new { id = c.Id, name = c.Name }),

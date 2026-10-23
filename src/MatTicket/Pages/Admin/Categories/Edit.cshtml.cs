@@ -29,6 +29,8 @@ public sealed class EditModel(Biz biz) : PageModelBase
         public bool IsActive { get; set; } = true;
 
         public int SortOrder { get; set; }
+
+        public string? AccessGroups { get; set; }
     }
 
     [BindProperty(SupportsGet = true)]
@@ -45,6 +47,10 @@ public sealed class EditModel(Biz biz) : PageModelBase
 
     public List<SelectListItem> Teams { get; private set; } = [];
 
+    public List<SelectListItem> Groups { get; private set; } = [];
+
+    private List<Choice> _groups = [];
+
     public async Task<IActionResult> OnGetAsync(long? parentId)
     {
         if (!await LoadAsync())
@@ -57,6 +63,7 @@ public sealed class EditModel(Biz biz) : PageModelBase
             {
                 Name = c.Name, ParentId = c.ParentId?.ToString(), Description = c.Description, Icon = c.Icon, DepartmentId = c.DepartmentId?.ToString(),
                 TeamId = c.TeamId?.ToString(), DefaultPriority = c.DefaultPriority, IsActive = c.IsActive, SortOrder = c.SortOrder,
+                AccessGroups = IdList.Join(_groups.Where(g => PortalLogic.Groups(c.AccessGroupsJson).Contains(g.Detail, StringComparer.OrdinalIgnoreCase)).Select(g => g.Id)),
             }
             : new InputModel { ParentId = parentId?.ToString() };
         return Page();
@@ -84,6 +91,7 @@ public sealed class EditModel(Biz biz) : PageModelBase
                     DefaultPriority = Input.DefaultPriority,
                     IsActive = Input.IsActive,
                     SortOrder = Input.SortOrder,
+                    AccessGroupsJson = PortalLogic.GroupsToJson(IdList.Parse(Input.AccessGroups).Select(id => _groups.FirstOrDefault(g => g.Id == id)?.Detail ?? "")),
                 });
                 Flash("Die Kategorie ist gespeichert.");
                 return RedirectToPage(new { id = saved.Id });
@@ -124,6 +132,8 @@ public sealed class EditModel(Biz biz) : PageModelBase
         Parents = Controls.Options.From(await CategoryLogic.ParentChoicesAsync(biz, Id));
         Departments = Controls.Options.From(await OrganizationLogic.DepartmentChoicesAsync(biz));
         Teams = Controls.Options.From(await OrganizationLogic.TeamChoicesAsync(biz));
+        _groups = await EntraLogic.GroupChoicesAsync(biz);
+        Groups = Controls.Options.From(_groups);
         var title = Category?.Name ?? "Neue Kategorie";
         Head(title, null, ("Einstellungen", null), ("Kategorien", "/Admin/Categories"), (title, null));
         ViewData["Width"] = "narrow";

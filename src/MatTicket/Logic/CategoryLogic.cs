@@ -33,10 +33,6 @@ public static class CategoryLogic
         return result;
     }
 
-    /// <summary>The categories as options of a form (the value is the id).</summary>
-    internal static async Task<List<FormOption>> FormOptionsAsync(MtDbContext db)
-        => [.. (await LoadChoicesAsync(db, onlyActive: true)).Select(c => new FormOption { Value = c.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), Label = c.Name })];
-
     public static IQueryable<Category> Query(Biz biz)
     {
         biz.RequireAdmin();
@@ -94,6 +90,7 @@ public static class CategoryLogic
         category.DefaultPriority = input.DefaultPriority;
         category.IsActive = input.IsActive;
         category.SortOrder = input.SortOrder;
+        category.AccessGroupsJson = PortalLogic.GroupsToJson(PortalLogic.Groups(input.AccessGroupsJson));
         if (id is null)
         {
             biz.Db.Category.Add(category);

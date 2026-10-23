@@ -43,6 +43,9 @@ public sealed class FormModel(Biz biz, AiRateLimiter limiter) : PageModelBase
 
     public string Token => PortalLogic.Protect(biz, Session);
 
+    /// <summary>The address of the sign-in that comes back to this form: Microsoft directly when it is set up.</summary>
+    public string SignInUrl => (EntraLogic.IsUsable(biz.Service<SettingStore>()) ? "/Account/Entra?returnUrl=" : "/Account/Login?returnUrl=") + Uri.EscapeDataString("/" + Slug);
+
     public async Task<IActionResult> OnGetAsync()
     {
         if (await LoadFormAsync() is { } fail)
@@ -51,6 +54,12 @@ public sealed class FormModel(Biz biz, AiRateLimiter limiter) : PageModelBase
         }
 
         Session = PortalLogic.Start(Form);
+        if (Form.Access != FormAccessResult.Allowed)
+        {
+            Step = Form.Definition.Steps.First();
+            return Page();
+        }
+
         Step = Form.Definition.Step(Session.Step) ?? Form.Definition.Steps.First();
         return Page();
     }
@@ -60,6 +69,11 @@ public sealed class FormModel(Biz biz, AiRateLimiter limiter) : PageModelBase
         if (await LoadFormAsync() is { } fail)
         {
             return fail;
+        }
+
+        if (Form.Access != FormAccessResult.Allowed)
+        {
+            return RedirectToPage(new { slug = Slug });
         }
 
         var session = PortalLogic.Unprotect(biz, State);
@@ -104,6 +118,11 @@ public sealed class FormModel(Biz biz, AiRateLimiter limiter) : PageModelBase
             return fail;
         }
 
+        if (Form.Access != FormAccessResult.Allowed)
+        {
+            return new JsonResult(new { error = "Dieses Formular ist nicht für Sie freigegeben." });
+        }
+
         var session = PortalLogic.Unprotect(biz, State);
         if (session is null)
         {
@@ -130,7 +149,7 @@ public sealed class FormModel(Biz biz, AiRateLimiter limiter) : PageModelBase
 
         Form = form;
         ViewData["Title"] = form.Definition.Title is { Length: > 0 } t ? t : form.Form.Name;
-        ViewData["Robots"] = form.Form.Indexable && !Preview ? "index, follow" : "noindex, nofollow";
+        ViewData["Robots"] = form.Form.Indexable && form.Form.Access == FormAccess.Public && !Preview ? "index, follow" : "noindex, nofollow";
         return null;
     }
 

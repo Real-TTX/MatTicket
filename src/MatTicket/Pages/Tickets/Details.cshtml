@@ -24,6 +24,7 @@
             @Labels.Pill(t.Status)
             @Labels.Pill(t.Priority)
             @if (t.Category is not null) { @Ui.Pill(t.Category.Parent is null ? t.Category.Name : $"{t.Category.Parent.Name} › {t.Category.Name}", "plain", "tag") }
+            @if (t.RequesterUserId is not null) { @Ui.Pill("angemeldet", "ok", "shield") }
             <span class="mat-muted">@Labels.Of(t.Source) · @Fmt.Moment(t.CreateDate)</span>
         </p>
     </div>
@@ -138,6 +139,7 @@
                         <dt>E-Mail</dt><dd>@if (string.IsNullOrWhiteSpace(t.RequesterEmail)) { <span>–</span> } else { <a href="mailto:@t.RequesterEmail">@t.RequesterEmail</a> }</dd>
                         <dt>Telefon</dt><dd>@if (string.IsNullOrWhiteSpace(t.RequesterPhone)) { <span>–</span> } else { <a href="tel:@t.RequesterPhone">@t.RequesterPhone</a> }</dd>
                         <dt>Firma</dt><dd>@(t.RequesterCompany ?? "–")</dd>
+                        <dt>Konto</dt><dd>@(t.RequesterUserId is null ? "ohne Anmeldung – Angaben nicht bestätigt" : "mit Anmeldung gesendet – Name und E-Mail aus dem Konto")</dd>
                         <dt>Statusseite</dt><dd><a href="/t/@t.Token.ToString("N")" target="_blank" rel="noopener">So sieht der Kunde das Ticket</a></dd>
                     </dl>
                 </mt-card>

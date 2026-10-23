@@ -2,12 +2,15 @@ namespace MatTicket.Data.Entities;
 
 /// <summary>
 /// The roles: administrators set everything up (forms, categories, teams, CRM, sync, AI, sign-in); agents (service staff) work on the tickets of
-/// their departments and see the CRM. A customer is no user: they reach a published form and the status page of their ticket by its link.
+/// their departments and see the CRM; requesters (staff of the company who are no service staff, usually signed in with Entra) only use the
+/// portal: they send forms with their account and see their own requests. A customer without an account reaches a public form and the status
+/// page of their ticket by its link.
 /// </summary>
 public enum UserRole
 {
     Admin,
     Agent,
+    Requester,
 }
 
 /// <summary>Where an account comes from: a local password, or Microsoft Entra ID (created at the first sign-in of a member of a mapped group).</summary>
@@ -32,6 +35,9 @@ public class User : AuditedEntity, ISoftDeletable
 
     /// <summary>The object id (oid) of the account in Entra ID; the link that survives a renamed address.</summary>
     public string? EntraObjectId { get; set; }
+
+    /// <summary>The Entra groups of the account at its last sign-in (object ids, jsonb): who may use which form and category.</summary>
+    public string EntraGroupsJson { get; set; } = "[]";
 
     public bool IsActive { get; set; } = true;
 

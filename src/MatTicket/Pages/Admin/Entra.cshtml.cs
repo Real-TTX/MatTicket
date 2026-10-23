@@ -21,6 +21,8 @@ public sealed class EntraModel(Biz biz, PublicUrl publicUrl) : PageModelBase
         public bool RemoveSecret { get; set; }
 
         public string CallbackPath { get; set; } = "/signin-entra";
+
+        public bool UnmappedAsRequesters { get; set; }
     }
 
     public sealed class GroupInput
@@ -50,14 +52,14 @@ public sealed class EntraModel(Biz biz, PublicUrl publicUrl) : PageModelBase
     public async Task OnGetAsync()
     {
         await LoadAsync();
-        Input = new InputModel { Enabled = Settings.Enabled, TenantId = Settings.TenantId, ClientId = Settings.ClientId, CallbackPath = Settings.CallbackPath };
+        Input = new InputModel { Enabled = Settings.Enabled, TenantId = Settings.TenantId, ClientId = Settings.ClientId, CallbackPath = Settings.CallbackPath, UnmappedAsRequesters = Settings.UnmappedAsRequesters };
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
         try
         {
-            await EntraLogic.SaveSettingsAsync(biz, Input.Enabled, Input.TenantId, Input.ClientId, Input.ClientSecret, Input.RemoveSecret, Input.CallbackPath);
+            await EntraLogic.SaveSettingsAsync(biz, Input.Enabled, Input.TenantId, Input.ClientId, Input.ClientSecret, Input.RemoveSecret, Input.CallbackPath, Input.UnmappedAsRequesters);
             Flash(Input.Enabled ? "Gespeichert. Die Anmeldung mit Microsoft gilt sofort." : "Gespeichert. Die Anmeldung mit Microsoft ist aus.");
             return RedirectToPage();
         }

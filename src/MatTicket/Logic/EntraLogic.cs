@@ -25,7 +25,7 @@ public static class EntraLogic
     /// <summary>What the sign-in page needs to know: is the button shown.</summary>
     public static bool IsUsable(SettingStore store) => store.Get<EntraSettings>(SettingStore.Entra).IsUsable;
 
-    public static async Task SaveSettingsAsync(Biz biz, bool enabled, string tenantId, string clientId, string? clientSecret, bool removeSecret, string callbackPath)
+    public static async Task SaveSettingsAsync(Biz biz, bool enabled, string tenantId, string clientId, string? clientSecret, bool removeSecret, string callbackPath, bool unmappedAsRequesters)
     {
         biz.RequireAdmin();
         var current = SettingLogic.Get<EntraSettings>(biz, SettingStore.Entra);
@@ -42,6 +42,7 @@ public static class EntraLogic
             ClientId = (clientId ?? "").Trim(),
             ClientSecretProtected = removeSecret ? "" : SettingLogic.KeepOrProtect(biz, clientSecret, current.ClientSecretProtected),
             CallbackPath = path,
+            UnmappedAsRequesters = unmappedAsRequesters,
         };
         if (enabled && !settings.TenantIsValid)
         {
@@ -68,6 +69,14 @@ public static class EntraLogic
     {
         biz.RequireAdmin();
         return await biz.Db.EntraGroupRole.AsNoTracking().OrderBy(g => g.Role).ThenBy(g => g.Note).ToListAsync();
+    }
+
+    /// <summary>The known groups as choices (for the access of forms and categories): the note is the name.</summary>
+    public static async Task<List<Choice>> GroupChoicesAsync(Biz biz)
+    {
+        biz.RequireAdmin();
+        var groups = await biz.Db.EntraGroupRole.AsNoTracking().OrderBy(g => g.Note).ToListAsync();
+        return [.. groups.Select(g => new Choice(g.Id, string.IsNullOrWhiteSpace(g.Note) ? g.GroupObjectId : g.Note!, g.GroupObjectId))];
     }
 
     public static async Task AddGroupAsync(Biz biz, string groupObjectId, UserRole role, string? note)
@@ -121,6 +130,12 @@ public static class EntraLogic
         var groups = principal.FindAll("groups").Select(c => c.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var mapped = await biz.Db.EntraGroupRole.AsNoTracking().ToListAsync();
         var roles = mapped.Where(m => groups.Contains(m.GroupObjectId)).Select(m => m.Role).ToList();
+        var settings = biz.Service<SettingStore>().Get<EntraSettings>(SettingStore.Entra);
+        if (roles.Count == 0 && settings.UnmappedAsRequesters)
+        {
+            roles.Add(UserRole.Requester);
+        }
+
         if (roles.Count == 0)
         {
             return new Outcome(null, groups.Count == 0
@@ -128,7 +143,9 @@ public static class EntraLogic
                 : "Du bist in keiner Gruppe, die für MatTicket freigegeben ist. Bitte wende dich an die Administration.");
         }
 
-        var role = roles.Contains(UserRole.Admin) ? UserRole.Admin : UserRole.Agent;
+        // The strongest role of the groups: administrator, then service staff, then requester (portal only).
+        var role = roles.Contains(UserRole.Admin) ? UserRole.Admin : roles.Contains(UserRole.Agent) ? UserRole.Agent : UserRole.Requester;
+        var groupsJson = PortalLogic.GroupsToJson(groups);
         var email = SignInService.NormalizeEmail(principal.FindFirstValue("email") ?? principal.FindFirstValue("preferred_username") ?? principal.FindFirstValue("upn"));
         var name = principal.FindFirstValue("name") ?? email;
 
@@ -140,7 +157,7 @@ public static class EntraLogic
 
         if (user is null)
         {
-            user = new User { Email = email.Length > 0 ? email : $"{oid}@entra", DisplayName = name, Role = role, Source = AuthSource.Entra, EntraObjectId = oid };
+            user = new User { Email = email.Length > 0 ? email : $"{oid}@entra", DisplayName = name, Role = role, Source = AuthSource.Entra, EntraObjectId = oid, EntraGroupsJson = groupsJson };
             biz.Db.User.Add(user);
             await biz.Db.SaveChangesAsync();
             await biz.Log.LogAsync("Konto über Entra angelegt", nameof(User), user.Id, $"{user.Email} ({role})");
@@ -154,6 +171,7 @@ public static class EntraLogic
 
         user.EntraObjectId = oid;
         user.Source = AuthSource.Entra;
+        user.EntraGroupsJson = groupsJson;
         if (user.Role != role)
         {
             await biz.Log.LogAsync("Rolle aus Entra übernommen", nameof(User), user.Id, $"{user.Role} → {role}");

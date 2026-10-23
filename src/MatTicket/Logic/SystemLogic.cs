@@ -311,6 +311,7 @@ public static class SystemLogic
                 Blocks =
                 [
                     new FormBlock { Id = "anliegen-b1", Type = BlockTypes.Category, Key = "kategorie", Label = "Art der Anfrage", Required = true },
+                    new FormBlock { Id = "anliegen-b0", Type = BlockTypes.Customer, Key = "kunde", Label = "Kunde", Visibility = Visibilities.Staff, Help = "Nur für den Service: für welchen Kunden die Anfrage erfasst wird." },
                     new FormBlock { Id = "anliegen-b2", Type = BlockTypes.Text, Key = "geraet", Label = "Gerät oder Anlage", Required = true, MapTo = "ticket.subject" },
                     new FormBlock { Id = "anliegen-b3", Type = BlockTypes.Text, Key = "standort", Label = "Standort", Help = "Adresse, Gebäude, Halle." },
                     new FormBlock { Id = "anliegen-b4", Type = BlockTypes.Date, Key = "wunschtermin", Label = "Wunschtermin", Width = "half" },

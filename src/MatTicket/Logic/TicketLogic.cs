@@ -133,6 +133,18 @@ public static class TicketLogic
             throw new BizException("Bitte gib einen Betreff ein.", "Input.Subject");
         }
 
+        var rules = SettingLogic.Get<TicketSettings>(biz, SettingStore.Tickets);
+        if (rules.AgentsOnlyOwnDepartments && !biz.IsAdmin)
+        {
+            var scope = await biz.ScopeAsync();
+            var placed = new Ticket();
+            await ApplyPlacementAsync(biz.Db, placed, input.CategoryId, input.DepartmentId, input.TeamId);
+            if (placed.DepartmentId is not { } department || !scope.DepartmentIds.Contains(department))
+            {
+                throw new BizException("Du kannst Tickets nur in den Abteilungen deiner Teams anlegen. Wähle eine davon (oder eine Kategorie, die dorthin gehört).", "Input.DepartmentId");
+            }
+        }
+
         var ticket = new Ticket
         {
             Subject = Limit(input.Subject, 300),

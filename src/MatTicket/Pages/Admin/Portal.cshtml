@@ -12,6 +12,12 @@
             <mt-textarea for="Input.PortalIntro" label="Text des Hilfe-Portals" rows="3" full="true" hint="Steht auf /hilfe über der Liste der Formulare." />
         </div>
     </mt-card>
+    <mt-card title="Tickets anlegen" icon="ticket">
+        <div class="mat-form__grid">
+            <mt-switch for="Rules.AgentsOnlyOwnDepartments" label="Service-Mitarbeiter legen Tickets nur in den Abteilungen ihrer Teams an" full="true" />
+        </div>
+        <p class="mat-hint">Gilt für Tickets, die der Service von Hand anlegt; Administratoren dürfen überall. Verschieben bleibt erlaubt. Wer in einem Formular welche Kategorie (und damit Abteilung) wählen darf, stellst du an der Kategorie ein, wer ein Formular überhaupt benutzen darf, am Formular.</p>
+    </mt-card>
     <mt-buttons back-href="/Admin/Forms" back-text="Zu den Formularen" />
 </form>
 

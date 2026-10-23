@@ -168,6 +168,49 @@ public sealed class FormBlock
 
     /// <summary>"full" or "half": the width on a wide screen.</summary>
     public string? Width { get; set; }
+
+    /// <summary>Who sees the block: null (everybody), "guests" (not signed in), "signedin", "staff" (service staff and administrators).</summary>
+    public string? Visibility { get; set; }
+}
+
+/// <summary>Who is looking at a form: what they may see decides which blocks are shown and read.</summary>
+public enum FormViewer
+{
+    Guest,
+    SignedIn,
+    Staff,
+}
+
+/// <summary>The choices that come from the data of the app, already narrowed to what the viewer may choose.</summary>
+public sealed record FormLists(IReadOnlyList<FormOption> Categories, IReadOnlyList<FormOption> Customers)
+{
+    public static readonly FormLists Empty = new([], []);
+}
+
+public static class Visibilities
+{
+    public const string Guests = "guests";
+    public const string SignedIn = "signedin";
+    public const string Staff = "staff";
+
+    public static readonly IReadOnlyList<(string? Value, string Label)> All =
+    [
+        (null, "Alle"),
+        (Guests, "Nur Gäste (nicht angemeldet)"),
+        (SignedIn, "Nur Angemeldete"),
+        (Staff, "Nur Service-Mitarbeiter"),
+    ];
+
+    public static bool IsKnown(string? value) => value is null or Guests or SignedIn or Staff;
+
+    /// <summary>Whether <paramref name="viewer"/> sees a block of <paramref name="visibility"/>.</summary>
+    public static bool Sees(string? visibility, FormViewer viewer) => visibility switch
+    {
+        Guests => viewer == FormViewer.Guest,
+        SignedIn => viewer != FormViewer.Guest,
+        Staff => viewer == FormViewer.Staff,
+        _ => true,
+    };
 }
 
 public sealed class FormOption
@@ -193,6 +236,7 @@ public static class BlockTypes
     public const string YesNo = "yesno";
     public const string Category = "category";
     public const string Consent = "consent";
+    public const string Customer = "customer";
 
     /// <summary>Every type with its German name and its icon, in the order of the palette of the designer.</summary>
     public static readonly IReadOnlyList<(string Type, string Label, string Icon)> All =
@@ -211,6 +255,7 @@ public static class BlockTypes
         (YesNo, "Ja / Nein", "toggle-left"),
         (Category, "Kategorie", "tag"),
         (Consent, "Zustimmung", "shield"),
+        (Customer, "Kunde (CRM)", "building"),
     ];
 
     public static bool IsQuestion(string type) => type is not (RichText or Divider);

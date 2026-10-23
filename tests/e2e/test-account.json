@@ -2,5 +2,10 @@
   "_note": "Test account of the LOCAL development stack only (docker-compose.local.yml, http://localhost:2740). Created by the setup page; never use it anywhere else.",
   "email": "admin@matticket.example.com",
   "name": "Test Admin",
-  "password": "Mt-Test-oMHO-YHSztfT"
+  "password": "Mt-Test-oMHO-YHSztfT",
+  "requester": {
+    "email": "max.anfrage@matticket.example.com",
+    "name": "Max Anfrage",
+    "password": "Mt-Req-rG59O82P87hk"
+  }
 }

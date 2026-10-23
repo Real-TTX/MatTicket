@@ -27,7 +27,8 @@ public static class FormLogic
         return await biz.Db.TicketForm.AsNoTracking().Include(f => f.Versions.OrderByDescending(v => v.Version)).FirstOrDefaultAsync(f => f.Id == id);
     }
 
-    public sealed record FormSettings(string Name, string Slug, string? Description, long? DepartmentId, long? TeamId, long? CategoryId, bool Indexable, bool AiAutoReply, bool AiTriage);
+    public sealed record FormSettings(string Name, string Slug, string? Description, long? DepartmentId, long? TeamId, long? CategoryId, bool Indexable, bool AiAutoReply, bool AiTriage,
+        FormAccess Access = FormAccess.Public, IReadOnlyList<string>? AccessGroups = null, AccountData AccountData = AccountData.Requesters);
 
     /// <summary>Creates a form (with a small starting flow) or changes its settings. The flow itself is saved by <see cref="SaveDraftAsync"/>.</summary>
     public static async Task<TicketForm> SaveSettingsAsync(Biz biz, long? id, FormSettings input)
@@ -70,6 +71,14 @@ public static class FormLogic
         form.Indexable = input.Indexable;
         form.AiAutoReply = input.AiAutoReply;
         form.AiTriage = input.AiTriage;
+        form.Access = input.Access;
+        form.AccessGroupsJson = PortalLogic.GroupsToJson(input.AccessGroups ?? []);
+        form.AccountData = input.AccountData;
+        if (input.Access == FormAccess.Groups && PortalLogic.Groups(form.AccessGroupsJson).Count == 0)
+        {
+            throw new BizException("Bitte wähle mindestens eine Gruppe, oder einen anderen Zugang.", "Input.AccessGroups");
+        }
+
         if (id is null)
         {
             form.DraftJson = Starter(name).ToJson();
@@ -171,6 +180,9 @@ public static class FormLogic
             Indexable = form.Indexable,
             AiAutoReply = form.AiAutoReply,
             AiTriage = form.AiTriage,
+            Access = form.Access,
+            AccessGroupsJson = form.AccessGroupsJson,
+            AccountData = form.AccountData,
         };
         biz.Db.TicketForm.Add(copy);
         await biz.Db.SaveChangesAsync();

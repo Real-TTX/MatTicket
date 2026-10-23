@@ -36,6 +36,7 @@
                               hint="@(s.HasSecret ? "Ein Geheimnis ist gespeichert (verschlüsselt, nie wieder sichtbar). Leer lassen, um es zu behalten." : "Der Wert des Geheimnisses (nicht seine ID). Wird verschlüsselt gespeichert.")" />
                     @if (s.HasSecret) { <mt-switch for="Input.RemoveSecret" label="Gespeichertes Geheimnis entfernen" full="true" /> }
                     <mt-input for="Input.CallbackPath" label="Rückruf-Pfad" hint="Meist /signin-entra. Gilt ohne Neustart." />
+                    <mt-switch for="Input.UnmappedAsRequesters" label="Alle anderen Konten des Tenants dürfen sich als Anfragende anmelden (nur Portal)" full="true" />
                     <div class="mat-field mat-field--full">
                         <span class="mat-label">Umleitungs-URI für das Entra-Portal</span>
                         <div class="mt-person"><code class="mat-mono">@Model.CallbackUrl</code> <button type="button" class="mat-btn mat-btn--ghost mat-btn--icon mat-btn--sm" data-copy="@Model.CallbackUrl" aria-label="Kopieren">@Ui.Icon("copy")</button></div>
@@ -48,7 +49,7 @@
     </mt-tab>
 
     <mt-tab id="groups" title="Gruppen und Rollen" icon="users" count="@Model.Groups.Count">
-        <mt-card title="Wer sich anmelden darf" icon="users" sub="Nur Mitglieder eingetragener Gruppen kommen hinein. Wer in mehreren ist, bekommt die stärkste Rolle.">
+        <mt-card title="Wer sich anmelden darf" icon="users" sub="Mitglieder eingetragener Gruppen kommen hinein; wer in mehreren ist, bekommt die stärkste Rolle (Administrator, Service-Mitarbeiter, Anfragender). Die Gruppen dienen auch als Freigabe für Formulare und Kategorien.">
             @if (Model.Groups.Count == 0)
             {
                 <p class="mat-muted">Noch keine Gruppe eingetragen.</p>

@@ -35,6 +35,11 @@ NODE_PATH=tests/e2e/node_modules node tools/icons.js                       # PNG
 
 ## Rules of the domain
 
+- Roles: Admin, Agent (service staff), Requester (portal only: forms with their account, "Meine Anfragen" on /hilfe; agent pages redirect them to /hilfe).
+- Portal access (`PortalLogic.AccessOf`): form `Access` Public / SignedIn / Staff / Groups (Entra group object ids stored on the user at sign-in, `User.EntraGroupsJson`);
+  staff may use every form. Categories can be limited to groups (a subcategory also needs its parent). Blocks have a `Visibility`; what a viewer does not see is not
+  read (`FormEngine.Read/Validate` with `PublicForm.Visible`). `AccountData`: requester name/e-mail/phone from the account, the form does not ask. The customer block
+  (CRM companies) is forced to staff-only in `FormEngine.Clean` and only staff get the list.
 - Ticket visibility: admin all; agent = assigned to them, no department, departments of their teams, their teams. Moving clears an assignee who is not in the new place.
 - Public forms: the server runs every step; the state travels protected (`PortalLogic.Protect`, 12 h). Only answers of the current step are read from a post.
   Reserved slugs in `FormLogic.ReservedSlugs`. Publishing copies the cleaned draft into an immutable `TicketFormVersion`.

@@ -9,9 +9,13 @@ public sealed class PortalModel(Biz biz) : PageModelBase
     [BindProperty]
     public SiteSettings Input { get; set; } = new();
 
+    [BindProperty]
+    public TicketSettings Rules { get; set; } = new();
+
     public void OnGet()
     {
         Input = SettingLogic.Get<SiteSettings>(biz, SettingStore.Site);
+        Rules = SettingLogic.Get<TicketSettings>(biz, SettingStore.Tickets);
         Load();
     }
 
@@ -38,13 +42,14 @@ public sealed class PortalModel(Biz biz) : PageModelBase
 
         Input.PortalIntro = (Input.PortalIntro ?? "").Trim();
         await SettingLogic.SaveAsync(biz, SettingStore.Site, Input, "Portal-Einstellungen geändert");
+        await SettingLogic.SaveAsync(biz, SettingStore.Tickets, Rules, "Regeln für Tickets geändert");
         Flash("Gespeichert.");
         return RedirectToPage();
     }
 
     private void Load()
     {
-        Head("Portal", "Die öffentlichen Seiten: das Hilfe-Portal, die Formulare und die Statusseiten der Kunden.", ("Einstellungen", null), ("Portal", null));
+        Head("Portal und Regeln", "Die öffentlichen Seiten (Hilfe-Portal, Formulare, Statusseiten) und wer wo Tickets anlegen darf.", ("Einstellungen", null), ("Portal", null));
         ViewData["Width"] = "narrow";
     }
 }

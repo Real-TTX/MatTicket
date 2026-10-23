@@ -15,6 +15,8 @@
             <mt-input for="Input.Icon" label="Symbol" hint="Name eines Symbols, z. B. monitor, printer, mail, wrench." />
             <mt-input for="Input.SortOrder" label="Reihenfolge" type="number" step="1" />
             <mt-switch for="Input.IsActive" label="Im Formular anbieten" full="true" />
+            <mt-picker for="Input.AccessGroups" label="Nur für Gruppen" items="Model.Groups" multiple="true" placeholder="Für alle" full="true"
+                       hint="Leer: jeder sieht die Kategorie im Formular. Sonst nur Mitglieder dieser Entra-Gruppen (und der Service). Eine Unterkategorie braucht auch die Freigabe der Hauptkategorie." />
         </div>
     </mt-card>
     <mt-card title="Wohin Tickets dieser Kategorie gehen" icon="route" sub="Leer bei einer Unterkategorie: wie die Hauptkategorie.">

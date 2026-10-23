@@ -31,6 +31,12 @@ public sealed class EditModel(Biz biz) : PageModelBase
         public bool AiAutoReply { get; set; }
 
         public bool AiTriage { get; set; }
+
+        public FormAccess Access { get; set; } = FormAccess.Public;
+
+        public string? AccessGroups { get; set; }
+
+        public AccountData AccountData { get; set; } = AccountData.Requesters;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -52,6 +58,15 @@ public sealed class EditModel(Biz biz) : PageModelBase
 
     public List<SelectListItem> Categories { get; private set; } = [];
 
+    public List<SelectListItem> Groups { get; private set; } = [];
+
+    private List<Choice> _groups = [];
+
+    /// <summary>The picker posts the ids of the known groups; the form keeps their object ids.</summary>
+    private List<string> GroupObjects(string? ids) => [.. IdList.Parse(ids).Select(id => _groups.FirstOrDefault(g => g.Id == id)?.Detail).Where(g => g is not null).Select(g => g!)];
+
+    private string GroupIds(IEnumerable<string> objectIds) => IdList.Join(_groups.Where(g => objectIds.Contains(g.Detail, StringComparer.OrdinalIgnoreCase)).Select(g => g.Id));
+
     public async Task<IActionResult> OnGetAsync()
     {
         if (!await LoadAsync())
@@ -65,6 +80,7 @@ public sealed class EditModel(Biz biz) : PageModelBase
             {
                 Name = f.Name, Slug = f.Slug, Description = f.Description, DepartmentId = f.DepartmentId?.ToString(), TeamId = f.TeamId?.ToString(),
                 CategoryId = f.CategoryId?.ToString(), Indexable = f.Indexable, AiAutoReply = f.AiAutoReply, AiTriage = f.AiTriage,
+                Access = f.Access, AccountData = f.AccountData, AccessGroups = GroupIds(PortalLogic.Groups(f.AccessGroupsJson)),
             };
         }
 
@@ -83,7 +99,8 @@ public sealed class EditModel(Biz biz) : PageModelBase
             try
             {
                 var saved = await FormLogic.SaveSettingsAsync(biz, Id, new FormLogic.FormSettings(Input.Name, Input.Slug ?? "", Input.Description,
-                    IdOf(Input.DepartmentId), IdOf(Input.TeamId), IdOf(Input.CategoryId), Input.Indexable, Input.AiAutoReply, Input.AiTriage));
+                    IdOf(Input.DepartmentId), IdOf(Input.TeamId), IdOf(Input.CategoryId), Input.Indexable, Input.AiAutoReply, Input.AiTriage,
+                    Input.Access, GroupObjects(Input.AccessGroups), Input.AccountData));
                 if (Id is null)
                 {
                     Flash("Das Formular ist angelegt. Bau jetzt den Ablauf im Designer.");
@@ -165,6 +182,8 @@ public sealed class EditModel(Biz biz) : PageModelBase
         Departments = Controls.Options.From(await OrganizationLogic.DepartmentChoicesAsync(biz));
         Teams = Controls.Options.From(await OrganizationLogic.TeamChoicesAsync(biz));
         Categories = Controls.Options.From(await CategoryLogic.ChoicesAsync(biz));
+        _groups = await EntraLogic.GroupChoicesAsync(biz);
+        Groups = Controls.Options.From(_groups);
         var title = Form?.Name ?? "Neues Formular";
         Head(title, Form is null ? null : "/" + Form.Slug, ("Einstellungen", null), ("Formulare", "/Admin/Forms"), (title, null));
         ViewData["ActiveHref"] = "/Admin/Forms";

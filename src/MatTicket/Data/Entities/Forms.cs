@@ -7,6 +7,35 @@ public enum FormState
     Archived,
 }
 
+/// <summary>Who may open a published form.</summary>
+public enum FormAccess
+{
+    /// <summary>Everybody, also without an account.</summary>
+    Public,
+
+    /// <summary>Every signed-in account (requesters, service staff, administrators).</summary>
+    SignedIn,
+
+    /// <summary>Service staff and administrators only (forms they fill in for a customer).</summary>
+    Staff,
+
+    /// <summary>Members of the given Entra groups (and service staff).</summary>
+    Groups,
+}
+
+/// <summary>Whether name, address and phone of the ticket come from the signed-in account instead of the form.</summary>
+public enum AccountData
+{
+    /// <summary>Never: the form asks everybody.</summary>
+    Off,
+
+    /// <summary>For requesters (the default): staff who fill in a form for a customer still enter the customer's details.</summary>
+    Requesters,
+
+    /// <summary>For everybody who is signed in.</summary>
+    AllSignedIn,
+}
+
 /// <summary>
 /// A form (an assistant) the administrator builds in the designer: steps with blocks, and a flow between them. The draft is edited; publishing
 /// copies it into a <see cref="TicketFormVersion"/>, which is what the public address /{slug} shows.
@@ -51,6 +80,13 @@ public class TicketForm : AuditedEntity, ISoftDeletable
 
     /// <summary>A new ticket of this form is sorted by the AI (category, priority, department, team), undoable.</summary>
     public bool AiTriage { get; set; }
+
+    public FormAccess Access { get; set; } = FormAccess.Public;
+
+    /// <summary>The Entra groups (object ids, jsonb) of <see cref="FormAccess.Groups"/>.</summary>
+    public string AccessGroupsJson { get; set; } = "[]";
+
+    public AccountData AccountData { get; set; } = AccountData.Requesters;
 
     public UpdateState UpdateState { get; set; } = UpdateState.Created;
 

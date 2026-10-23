@@ -20,6 +20,24 @@
                 @Ui.Logo("sm")
                 <span>@site.ServiceName@(string.IsNullOrWhiteSpace(site.Company) ? "" : " · " + site.Company)</span>
             </a>
+            <span class="mat-toolbar__spacer"></span>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="mt-public__account">
+                    @if (!User.IsInRole(nameof(UserRole.Requester)))
+                    {
+                        <a class="mat-btn mat-btn--ghost mat-btn--sm" href="/">@Ui.Icon("dashboard")<span class="mat-hide-sm">Zum Service</span></a>
+                    }
+                    <a class="mat-btn mat-btn--ghost mat-btn--sm" href="/hilfe#meine">@Ui.Avatar(User.Identity.Name, "sm")<span class="mat-hide-sm">Meine Anfragen</span></a>
+                    <form method="post" action="/Account/Logout" asp-antiforgery="true" class="mt-inline-form">
+                        <button type="submit" class="mat-btn mat-btn--ghost mat-btn--icon mat-btn--sm" aria-label="Abmelden" data-tip="Abmelden">@Ui.Icon("logout")</button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <a class="mat-btn mat-btn--secondary mat-btn--sm" href="@(EntraLogic.IsUsable(Settings) ? "/Account/Entra" : "/Account/Login")?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">@Ui.Icon("enter")<span>Anmelden</span></a>
+            }
         </header>
 
         <div class="mat-alert mat-alert--warning mt-offline" role="status" data-offline-banner hidden>

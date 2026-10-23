@@ -108,6 +108,7 @@
   function optionsOf(block) {
     if (block.type === 'yesno') { return [{ value: 'ja', label: 'Ja' }, { value: 'nein', label: 'Nein' }]; }
     if (block.type === 'category') { return boot.categories.map(function (c) { return { value: String(c.id), label: c.name }; }); }
+    if (block.type === 'customer') { return [{ value: '', label: 'Kunde aus dem CRM suchen …' }]; }
     return block.options || [];
   }
 
@@ -126,12 +127,13 @@
 
     if (type === 'richtext') { b.html = '<p>Text eingeben …</p>'; return b; }
     if (type === 'divider') { return b; }
-    var label = { consent: 'Ich bin einverstanden, dass meine Angaben zur Bearbeitung gespeichert werden.', category: 'Worum geht es?', yesno: 'Ja oder nein?', email: 'E-Mail-Adresse', phone: 'Telefon', date: 'Datum' }[type] || 'Neue Frage';
+    var label = { consent: 'Ich bin einverstanden, dass meine Angaben zur Bearbeitung gespeichert werden.', category: 'Worum geht es?', yesno: 'Ja oder nein?', email: 'E-Mail-Adresse', phone: 'Telefon', date: 'Datum', customer: 'Kunde' }[type] || 'Neue Frage';
     b.label = label;
     b.key = uniqueKey(type === 'email' ? 'email' : type === 'phone' ? 'telefon' : label);
     b.required = type === 'consent';
     b.options = t.options ? [{ value: 'option_1', label: 'Option 1' }, { value: 'option_2', label: 'Option 2' }] : [];
     if (type === 'email') { b.mapTo = questions().some(function (q) { return q.mapTo === 'requester.email'; }) ? null : 'requester.email'; }
+    if (type === 'customer') { b.visibility = 'staff'; }
     return b;
   }
 
@@ -272,6 +274,7 @@
         return el('div', { 'class': 'mat-field mat-field--full' }, [el('label', { 'class': 'mat-check' }, [el('input', { type: 'checkbox', tabindex: '-1' }), el('span', { 'class': 'mat-check__text', text: (b.label || '') + (b.required ? ' *' : '') })]), hint]);
       case 'select':
       case 'category':
+      case 'customer':
         var sel = el('select', { 'class': 'mat-select', id: id, tabindex: '-1' }, [el('option', { text: 'Bitte wählen' })]);
         optionsOf(b).slice(0, 30).forEach(function (o) { sel.appendChild(el('option', { text: o.label })); });
         return el('div', { 'class': 'mat-field' + (full ? ' mat-field--full' : '') }, [label(id), sel, hint]);
@@ -320,7 +323,9 @@
       var t = types[b.type] || types.text;
       var selected = b.id === state.block;
       var wrap = el('div', { 'class': 'mt-dblock' + (selected ? ' is-selected' : '') + (b.width === 'half' && t.question && ['radio', 'checkboxes', 'yesno', 'textarea', 'consent'].indexOf(b.type) < 0 ? '' : ' mat-field--full'), 'data-block': b.id, draggable: 'true', tabindex: '0', role: 'button', 'aria-pressed': selected ? 'true' : 'false', 'aria-label': t.label + ': ' + (b.label || '') });
-      wrap.appendChild(el('span', { 'class': 'mt-dblock__label' }, [icon(t.icon), el('span', { text: t.label + (b.key ? ' · ' + b.key : '') + (b.mapTo ? ' → ' + (boot.mapTargets.find(function (m) { return m.value === b.mapTo; }) || {}).label : '') })]));
+      var seen = b.visibility ? (boot.visibilities.find(function (v) { return v.value === b.visibility; }) || {}).label : null;
+      wrap.appendChild(el('span', { 'class': 'mt-dblock__label' }, [icon(t.icon), el('span', { text: t.label + (b.key ? ' · ' + b.key : '') + (b.mapTo ? ' → ' + (boot.mapTargets.find(function (m) { return m.value === b.mapTo; }) || {}).label : '') }),
+        seen ? el('span', { 'class': 'mt-dblock__seen' }, [icon('eye'), el('span', { text: seen })]) : null]));
       if (b.type === 'richtext') {
         wrap.appendChild(rte(b.html, function (html) { b.html = html; markDirty(); }));
       } else if (b.type === 'divider') {
@@ -509,9 +514,16 @@
       grid.appendChild(field('Hilfetext', textInput(b.help, function (v) { b.help = v; renderCanvasSoon(); })));
       grid.appendChild(toggle('Pflichtfeld', b.required, function (v) { b.required = v; renderCanvas(); }));
       if (t.options) { grid.appendChild(optionsEditor(b)); }
-      if (b.type === 'category') { grid.appendChild(el('p', { 'class': 'mat-hint mat-field--full', text: 'Die Auswahl sind die aktiven Kategorien. Die gewählte Kategorie bestimmt Abteilung und Team des Tickets.' })); }
-      grid.appendChild(field('Geht auch in', select(boot.mapTargets, b.mapTo || '', function (v) { b.mapTo = v || null; renderCanvas(); }, 'Nur in die Angaben'), 'Füllt z. B. den Namen oder die E-Mail des Anfragenden, den Betreff oder die Beschreibung.'));
-      if (['text', 'email', 'phone', 'number', 'date', 'select', 'category'].indexOf(b.type) >= 0) {
+      if (b.type === 'category') { grid.appendChild(el('p', { 'class': 'mat-hint mat-field--full', text: 'Die Auswahl sind die aktiven Kategorien, die der Besucher sehen darf (Freigabe für Gruppen an der Kategorie). Die gewählte Kategorie bestimmt Abteilung und Team des Tickets.' })); }
+      if (b.type === 'customer') {
+        grid.appendChild(el('p', { 'class': 'mat-hint mat-field--full', text: 'Die Kunden (Firmen) aus dem CRM, mit Suche. Nur Service-Mitarbeiter sehen diese Frage – das ist fest, denn die Liste ist vertraulich. Der gewählte Kunde wird die Firma des Tickets.' }));
+      } else {
+        grid.appendChild(field('Geht auch in', select(boot.mapTargets, b.mapTo || '', function (v) { b.mapTo = v || null; renderCanvas(); }, 'Nur in die Angaben'),
+          'Füllt z. B. den Namen oder die E-Mail des Anfragenden, den Betreff oder die Beschreibung.' + (boot.accountData !== 'Off' ? ' Name, E-Mail und Telefon des Anfragenden fragt das Formular Angemeldete nicht: sie kommen aus dem Konto.' : '')));
+        grid.appendChild(field('Sichtbar für', select(boot.visibilities, b.visibility || '', function (v) { b.visibility = v || null; renderCanvas(); }),
+          'Wer die Frage sieht und beantwortet. Was jemand nicht sieht, wird auch nicht angenommen.'));
+      }
+      if (['text', 'email', 'phone', 'number', 'date', 'select', 'category', 'customer'].indexOf(b.type) >= 0) {
         grid.appendChild(field('Breite', select([{ value: 'full', label: 'Ganze Breite' }, { value: 'half', label: 'Halbe Breite' }], b.width === 'half' ? 'half' : 'full', function (v) { b.width = v === 'half' ? 'half' : null; renderCanvas(); })));
       }
       if (b.questionId) { grid.appendChild(el('p', { 'class': 'mat-hint mat-field--full', text: 'Aus dem Fragenkatalog übernommen; Änderungen hier gelten nur für dieses Formular.' })); }

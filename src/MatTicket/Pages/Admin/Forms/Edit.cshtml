@@ -29,6 +29,16 @@
                     <mt-switch for="Input.Indexable" label="Darf von Suchmaschinen gefunden werden (robots.txt, Sitemap, llms.txt)" full="true" />
                 </div>
             </mt-card>
+            <mt-card title="Wer das Formular benutzen darf" icon="lock" sub="Service-Mitarbeiter und Administratoren dürfen jedes Formular benutzen.">
+                <div class="mat-form__grid">
+                    <mt-radios for="Input.Access" label="Zugang" items="Controls.Options.Of<FormAccess>(Labels.Of)" full="true" />
+                    <mt-picker for="Input.AccessGroups" label="Gruppen" items="Model.Groups" multiple="true" placeholder="Gruppe wählen" full="true" show-if="Input.Access" show-value="Groups"
+                               hint="Die Gruppen aus Einstellungen → Anmeldung → Gruppen und Rollen (Entra). Mitglieder einer dieser Gruppen dürfen das Formular benutzen." />
+                    <mt-select for="Input.AccountData" label="Name und E-Mail aus dem Konto" items="Controls.Options.Of<AccountData>(Labels.Of)" full="true"
+                               hint="Angemeldete geben ihre Kontaktdaten nicht ein: Fragen, die in Name, E-Mail oder Telefon des Anfragenden gehen, werden ihnen nicht gezeigt." />
+                </div>
+                <p class="mat-hint">Was einzelne Besucher sehen, stellst du im Designer pro Baustein ein (z. B. „Nur Service-Mitarbeiter“ für die Auswahl des Kunden). Kategorien lassen sich auf Gruppen beschränken.</p>
+            </mt-card>
             <mt-card title="Wohin die Tickets gehen" icon="route" sub="Der Ticket-Schritt im Designer und eine Kategorie-Frage haben Vorrang.">
                 <div class="mat-form__grid">
                     <mt-picker for="Input.DepartmentId" label="Abteilung" items="Model.Departments" placeholder="Keine" />

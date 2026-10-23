@@ -57,7 +57,7 @@ public sealed class ShellFactory(ICurrentUser user, NavCounts counts, IHttpConte
         var principal = accessor.HttpContext?.User;
         var theme = principal?.FindFirst(AppClaims.Theme)?.Value;
 
-        var menus = new List<NavSet> { await WorkMenuAsync() };
+        var menus = new List<NavSet> { user.Role == Data.Entities.UserRole.Requester ? RequesterMenu() : await WorkMenuAsync() };
         if (user.IsAdmin)
         {
             menus.Add(AdminMenu());
@@ -67,7 +67,7 @@ public sealed class ShellFactory(ICurrentUser user, NavCounts counts, IHttpConte
         {
             Menus = menus,
             UserName = user.Name ?? "Gast",
-            UserRole = user.IsAdmin ? "Administrator" : "Service",
+            UserRole = user.IsAdmin ? "Administrator" : user.Role == Data.Entities.UserRole.Requester ? "Anfragender" : "Service",
             UserLine = principal?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "",
             UserMenu = UserMenu(),
             Version = $"MatTicket {AppVersion.Current}",
@@ -109,6 +109,15 @@ public sealed class ShellFactory(ICurrentUser user, NavCounts counts, IHttpConte
             ]),
         ]);
     }
+
+    /// <summary>A requester only uses the portal: the forms and their own requests.</summary>
+    private static NavSet RequesterMenu() => new("work", "MatTicket", "mt-logo",
+    [
+        new(null,
+        [
+            new("Hilfe-Portal", "/hilfe", "globe"),
+        ]),
+    ]);
 
     private static NavSet AdminMenu() => new("admin", "Einstellungen", "settings",
     [

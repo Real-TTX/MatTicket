@@ -55,20 +55,24 @@ public static class FormEngine
     /// <summary>The name a block's input has in the posted form.</summary>
     public static string InputName(FormBlock block) => "a_" + block.Key;
 
-    /// <summary>The choices of a block: its own options, or the categories for a category block, or yes and no.</summary>
-    public static IReadOnlyList<FormOption> OptionsOf(FormBlock block, IReadOnlyList<FormOption> categories)
+    /// <summary>The choices of a block: its own options, the categories or customers the viewer may choose, or yes and no.</summary>
+    public static IReadOnlyList<FormOption> OptionsOf(FormBlock block, FormLists lists)
         => block.Type switch
         {
-            BlockTypes.Category => categories,
+            BlockTypes.Category => lists.Categories,
+            BlockTypes.Customer => lists.Customers,
             BlockTypes.YesNo => [new FormOption { Value = "ja", Label = "Ja" }, new FormOption { Value = "nein", Label = "Nein" }],
             _ => block.Options,
         };
 
-    /// <summary>Reads the answers of one step from what was posted.</summary>
-    public static FormAnswers Read(FormStep step, Func<string, IReadOnlyList<string>> posted)
+    /// <summary>
+    /// Reads the answers of one step from what was posted. Only the blocks the viewer sees (<paramref name="visible"/>) are read: a value posted
+    /// for a block the viewer does not see is ignored.
+    /// </summary>
+    public static FormAnswers Read(FormStep step, Func<string, IReadOnlyList<string>> posted, Func<FormBlock, bool>? visible = null)
     {
         var answers = new FormAnswers();
-        foreach (var block in step.Blocks.Where(b => BlockTypes.IsQuestion(b.Type) && !string.IsNullOrEmpty(b.Key)))
+        foreach (var block in step.Blocks.Where(b => BlockTypes.IsQuestion(b.Type) && !string.IsNullOrEmpty(b.Key) && (visible is null || visible(b))))
         {
             var values = posted(InputName(block)).Select(v => (v ?? "").Trim()).Where(v => v.Length > 0).ToList();
             answers[block.Key!] = block.Type switch
@@ -83,10 +87,10 @@ public static class FormEngine
     }
 
     /// <summary>The problems of the answers of a step: input name → message. Empty when everything is fine.</summary>
-    public static Dictionary<string, string> Validate(FormStep step, FormAnswers answers, IReadOnlyList<FormOption> categories)
+    public static Dictionary<string, string> Validate(FormStep step, FormAnswers answers, FormLists lists, Func<FormBlock, bool>? visible = null)
     {
         var errors = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var block in step.Blocks.Where(b => BlockTypes.IsQuestion(b.Type) && !string.IsNullOrEmpty(b.Key)))
+        foreach (var block in step.Blocks.Where(b => BlockTypes.IsQuestion(b.Type) && !string.IsNullOrEmpty(b.Key) && (visible is null || visible(b))))
         {
             var value = answers.Get(block.Key!);
             var name = InputName(block);
@@ -97,7 +101,7 @@ public static class FormEngine
                     errors[name] = block.Type switch
                     {
                         BlockTypes.Consent => "Bitte stimme zu, um fortzufahren.",
-                        BlockTypes.Select or BlockTypes.Radio or BlockTypes.Category or BlockTypes.YesNo or BlockTypes.Checkboxes => "Bitte wähle etwas aus.",
+                        BlockTypes.Select or BlockTypes.Radio or BlockTypes.Category or BlockTypes.Customer or BlockTypes.YesNo or BlockTypes.Checkboxes => "Bitte wähle etwas aus.",
                         _ => "Bitte fülle dieses Feld aus.",
                     };
                 }
@@ -120,8 +124,8 @@ public static class FormEngine
                 case BlockTypes.Phone when value.Count(char.IsDigit) < 5:
                     errors[name] = "Bitte gib eine Telefonnummer ein.";
                     break;
-                case BlockTypes.Select or BlockTypes.Radio or BlockTypes.Category or BlockTypes.YesNo
-                    when !OptionsOf(block, categories).Any(o => o.Value == value):
+                case BlockTypes.Select or BlockTypes.Radio or BlockTypes.Category or BlockTypes.Customer or BlockTypes.YesNo
+                    when !OptionsOf(block, lists).Any(o => o.Value == value):
                     errors[name] = "Diese Auswahl gibt es nicht.";
                     break;
                 case BlockTypes.Checkboxes when value.Split(Separator).Any(v => !block.Options.Any(o => o.Value == v)):
@@ -192,7 +196,7 @@ public static class FormEngine
     }
 
     /// <summary>An answer as a person reads it: the labels of the choices, a date in German, ja/nein.</summary>
-    public static string Display(FormBlock block, string value, IReadOnlyList<FormOption> categories)
+    public static string Display(FormBlock block, string value, FormLists lists)
     {
         if (value.Length == 0)
         {
@@ -203,8 +207,8 @@ public static class FormEngine
         {
             case BlockTypes.Checkboxes:
                 return string.Join(", ", value.Split(Separator).Select(v => block.Options.FirstOrDefault(o => o.Value == v)?.Label ?? v));
-            case BlockTypes.Select or BlockTypes.Radio or BlockTypes.Category or BlockTypes.YesNo:
-                return OptionsOf(block, categories).FirstOrDefault(o => o.Value == value)?.Label ?? value;
+            case BlockTypes.Select or BlockTypes.Radio or BlockTypes.Category or BlockTypes.Customer or BlockTypes.YesNo:
+                return OptionsOf(block, lists).FirstOrDefault(o => o.Value == value)?.Label ?? value;
             case BlockTypes.Consent:
                 return value == "ja" ? "zugestimmt" : "";
             case BlockTypes.Date when DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d):
@@ -215,11 +219,11 @@ public static class FormEngine
     }
 
     /// <summary>The subject of a ticket from a template with the answers ("{bereich}: {kurzbeschreibung}"), as a person reads them.</summary>
-    public static string FillTemplate(FormDefinition definition, string template, FormAnswers answers, IReadOnlyList<FormOption> categories)
+    public static string FillTemplate(FormDefinition definition, string template, FormAnswers answers, FormLists lists)
         => Placeholders.Fill(template, key =>
         {
             var block = definition.Question(key);
-            return block is null ? answers.Get(key) : Display(block, answers.Get(key), categories);
+            return block is null ? answers.Get(key) : Display(block, answers.Get(key), lists);
         }, urlEncode: false).Trim();
 
     // ================================================================================================ checking and cleaning a definition
@@ -413,8 +417,11 @@ public static class FormEngine
                         }).DistinctBy(o => o.Value)]
                         : [],
                     QuestionId = block.QuestionId,
-                    MapTo = question && MapTargets.IsKnown(block.MapTo) ? NullIfEmpty(block.MapTo) : null,
+                    MapTo = question && block.Type != BlockTypes.Customer && MapTargets.IsKnown(block.MapTo) ? NullIfEmpty(block.MapTo) : null,
                     Width = block.Width == "half" ? "half" : null,
+
+                    // The list of customers is data of the CRM: only service staff ever see it, whatever the designer says.
+                    Visibility = block.Type == BlockTypes.Customer ? Visibilities.Staff : Visibilities.IsKnown(block.Visibility) ? NullIfEmpty(block.Visibility) : null,
                 });
             }
 

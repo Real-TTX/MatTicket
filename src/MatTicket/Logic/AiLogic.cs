@@ -485,7 +485,7 @@ public static class AiLogic
     /// The AI step of a published form. It sees only what the visitor entered in this form (no customer data: there is no field to name one),
     /// with personal data masked unless the administrator allowed it, and its answer is cleaned before anybody sees it.
     /// </summary>
-    internal static async Task<Assist> AssistAsync(MtDbContext db, IServiceProvider services, long formId, FormDefinition definition, FormStep step, FormAnswers answers, IReadOnlyList<FormOption> categories, string? address)
+    internal static async Task<Assist> AssistAsync(MtDbContext db, IServiceProvider services, long formId, FormDefinition definition, FormStep step, FormAnswers answers, FormLists lists, string? address)
     {
         var store = services.GetRequiredService<SettingStore>();
         var settings = store.Get<AiSettings>(SettingStore.Ai);
@@ -500,8 +500,8 @@ public static class AiLogic
         sb.AppendLine("Angaben des Besuchers:");
         foreach (var block in definition.Questions)
         {
-            var value = FormEngine.Display(block, answers.Get(block.Key!), categories);
-            if (value.Length == 0 || block.MapTo is "requester.email" or "requester.phone" or "requester.name")
+            var value = FormEngine.Display(block, answers.Get(block.Key!), lists);
+            if (value.Length == 0 || block.Type == BlockTypes.Customer || block.MapTo is "requester.email" or "requester.phone" or "requester.name")
             {
                 continue;
             }

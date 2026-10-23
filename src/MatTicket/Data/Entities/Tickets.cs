@@ -28,6 +28,9 @@ public class Category : AuditedEntity, ISoftDeletable
 
     public int SortOrder { get; set; }
 
+    /// <summary>Entra groups (object ids, jsonb) whose members may choose this category in a form; empty: everybody. Service staff always may.</summary>
+    public string AccessGroupsJson { get; set; } = "[]";
+
     public UpdateState UpdateState { get; set; } = UpdateState.Created;
 
     public List<Category> Children { get; set; } = [];
@@ -110,6 +113,11 @@ public class Ticket : AuditedEntity, ISoftDeletable
 
     /// <summary>The answers of the form: a list of label, key and value, kept as they were shown (jsonb).</summary>
     public string AnswersJson { get; set; } = "[]";
+
+    /// <summary>The account that sent the ticket, when it was signed in: name and address then come from the account, not from the form.</summary>
+    public long? RequesterUserId { get; set; }
+
+    public User? RequesterUser { get; set; }
 
     public string RequesterName { get; set; } = "";
 

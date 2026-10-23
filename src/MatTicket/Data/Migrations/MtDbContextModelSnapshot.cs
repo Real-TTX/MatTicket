@@ -326,6 +326,10 @@ namespace MatTicket.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("AccessGroupsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -1135,6 +1139,9 @@ namespace MatTicket.Data.Migrations
                     b.Property<string>("RequesterPhone")
                         .HasColumnType("text");
 
+                    b.Property<long?>("RequesterUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("ResolvedDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -1186,6 +1193,8 @@ namespace MatTicket.Data.Migrations
 
                     b.HasIndex("Number");
 
+                    b.HasIndex("RequesterUserId");
+
                     b.HasIndex("Status");
 
                     b.HasIndex("TeamId");
@@ -1205,6 +1214,20 @@ namespace MatTicket.Data.Migrations
                         .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Access")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("AccessGroupsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("AccountData")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<bool>("AiAutoReply")
                         .HasColumnType("boolean");
@@ -1397,6 +1420,10 @@ namespace MatTicket.Data.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("EntraGroupsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("EntraObjectId")
                         .HasColumnType("text");
@@ -1792,6 +1819,11 @@ namespace MatTicket.Data.Migrations
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("MatTicket.Data.Entities.User", "RequesterUser")
+                        .WithMany()
+                        .HasForeignKey("RequesterUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("MatTicket.Data.Entities.Team", "Team")
                         .WithMany()
                         .HasForeignKey("TeamId")
@@ -1811,6 +1843,8 @@ namespace MatTicket.Data.Migrations
                     b.Navigation("Contact");
 
                     b.Navigation("Department");
+
+                    b.Navigation("RequesterUser");
 
                     b.Navigation("Team");
 

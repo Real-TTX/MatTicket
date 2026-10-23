@@ -6,7 +6,27 @@ namespace MatTicket.UiKit;
 /// <summary>The German words for the enums of the data model, and the tone of a status pill (the colour is never alone: the pill carries the word and an icon).</summary>
 public static class Labels
 {
-    public static string Of(UserRole r) => r == UserRole.Admin ? "Administrator" : "Service-Mitarbeiter";
+    public static string Of(UserRole r) => r switch
+    {
+        UserRole.Admin => "Administrator",
+        UserRole.Agent => "Service-Mitarbeiter",
+        _ => "Anfragender (nur Portal)",
+    };
+
+    public static string Of(FormAccess a) => a switch
+    {
+        FormAccess.Public => "Öffentlich (jeder)",
+        FormAccess.SignedIn => "Nur angemeldete Benutzer",
+        FormAccess.Staff => "Nur Service-Mitarbeiter",
+        _ => "Nur bestimmte Gruppen",
+    };
+
+    public static string Of(AccountData a) => a switch
+    {
+        AccountData.Off => "Nie – das Formular fragt jeden",
+        AccountData.Requesters => "Für Anfragende (Mitarbeiter erfassen für Kunden)",
+        _ => "Für alle Angemeldeten",
+    };
 
     public static string Of(AuthSource s) => s == AuthSource.Entra ? "Microsoft Entra ID" : "Lokales Passwort";
 
