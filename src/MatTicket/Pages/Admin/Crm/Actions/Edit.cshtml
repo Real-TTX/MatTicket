@@ -1,0 +1,46 @@
+@page
+@model MatTicket.Pages.Admin.Crm.Actions.EditModel
+@{
+    var entities = Controls.Options.Of<CrmEntity>(e => e == CrmEntity.Company ? "Firmen" : "Kontakte");
+    var kinds = Controls.Options.Of<ViewActionKind>(Labels.Of);
+}
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-card title="Knopf" icon="external">
+        <div class="mat-form__grid">
+            <mt-radios for="Input.Entity" label="Auf der Seite von" items="entities" full="true" />
+            <mt-select for="Input.Kind" label="Art" items="kinds" />
+            <mt-input for="Input.Label" label="Beschriftung" required="true" />
+            <mt-input for="Input.Template" label="Vorlage" required="true" full="true"
+                      hint="Link: die ganze Adresse mit Platzhaltern, z. B. https://crm.example.com/kunde/{CustomerNumber} oder dynamicsnav://server/instanz/firma/runpage?page=21. Karte: die Adresse, meist {Address}. Anrufen: {Phone}. E-Mail: {Email}." />
+            <mt-input for="Input.Icon" label="Symbol" hint="z. B. external, database, map-pin, phone, mail, globe." />
+            <mt-input for="Input.SortOrder" label="Reihenfolge" type="number" step="1" />
+            <mt-switch for="Input.NewWindow" label="In einem neuen Fenster öffnen" full="true" />
+            <mt-switch for="Input.IsActive" label="Anzeigen" full="true" />
+        </div>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Crm/Actions" delete-url="@(Model.Action is null ? null : Url.Page("/Admin/Crm/Actions/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Diesen Knopf löschen?" />
+</form>
+
+<mt-card title="Platzhalter" icon="hash" sub="Werte werden für Adressen automatisch kodiert. Ein Knopf, dessen Platzhalter alle leer sind, wird nicht gezeigt.">
+    <div class="mt-split mt-split--half">
+        <div>
+            <h3 class="mt-subhead">Firmen</h3>
+            <ul class="mt-chips">
+                <li class="mat-chip mat-mono">{Address}</li>
+                @foreach (var f in Model.CompanyFields) { <li class="mat-chip mat-mono" title="@f.Label">{@f.Key}</li> }
+            </ul>
+        </div>
+        <div>
+            <h3 class="mt-subhead">Kontakte</h3>
+            <ul class="mt-chips">
+                <li class="mat-chip mat-mono">{Address}</li>
+                <li class="mat-chip mat-mono">{FullName}</li>
+                <li class="mat-chip mat-mono">{CompanyCustomerNumber}</li>
+                @foreach (var f in Model.ContactFields) { <li class="mat-chip mat-mono" title="@f.Label">{@f.Key}</li> }
+            </ul>
+        </div>
+    </div>
+</mt-card>

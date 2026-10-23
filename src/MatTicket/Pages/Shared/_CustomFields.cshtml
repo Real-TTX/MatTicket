@@ -1,0 +1,33 @@
+@model (IReadOnlyList<CrmField> Fields, IReadOnlyDictionary<string, string> Values)
+@*
+    The custom fields of a CRM record in a form grid: one control per field, by its type; posted as "Extra.<key>".
+*@
+@{
+    var yesNo = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> { new("Ja", "true"), new("Nein", "false") };
+}
+<div class="mat-form__grid">
+    @foreach (var f in Model.Fields)
+    {
+        var key = f.Key[2..];
+        var name = "Extra." + key;
+        var id = "extra_" + key;
+        var value = Model.Values.TryGetValue(key, out var v) ? v : "";
+        var choices = CategoryLogic.ParseOptions(f.Options).Select(o => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem(o.Label, o.Label)).ToList();
+        switch (f.Type)
+        {
+            case CustomFieldType.Textarea:
+                <mt-textarea name="@name" id="@id" label="@f.Label" hint="@f.Hint" required="@f.Required" value="@value" full="true" rows="3" />
+                break;
+            case CustomFieldType.Bool:
+                <mt-select name="@name" id="@id" label="@f.Label" hint="@f.Hint" value="@value" empty="–" items="yesNo" />
+                break;
+            case CustomFieldType.Select:
+                <mt-select name="@name" id="@id" label="@f.Label" hint="@f.Hint" required="@f.Required" value="@value" empty="–" items="choices" />
+                break;
+            default:
+                var type = f.Type switch { CustomFieldType.Number => "number", CustomFieldType.Date => "date", CustomFieldType.Url => "url", CustomFieldType.Email => "email", CustomFieldType.Phone => "tel", _ => "text" };
+                <mt-input name="@name" id="@id" label="@f.Label" hint="@f.Hint" required="@f.Required" value="@value" type="@type" />
+                break;
+        }
+    }
+</div>

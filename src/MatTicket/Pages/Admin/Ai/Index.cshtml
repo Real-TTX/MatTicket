@@ -1,0 +1,74 @@
+@page
+@model MatTicket.Pages.Admin.Ai.IndexModel
+@{
+    var u = Model.Usage;
+}
+
+<div class="mat-grid mt-stats">
+    @Ui.Kpi("Tokens heute", Fmt.Integer(u.TodayTokens), $"{u.TodayRuns} Läufe", "zap", href: "/Admin/Ai/Runs")
+    @Ui.Kpi("Tokens im Monat", Fmt.Integer(u.MonthTokens), Model.Input.MonthlyTokens > 0 ? $"von {Fmt.Integer(Model.Input.MonthlyTokens)}" : "ohne Grenze", "bar-chart", href: "/Admin/Ai/Runs", bad: Model.Input.MonthlyTokens > 0 && u.MonthTokens > Model.Input.MonthlyTokens * 0.8)
+    @Ui.Kpi("Läufe im Monat", Fmt.Integer(u.MonthRuns), null, "activity", href: "/Admin/Ai/Runs")
+</div>
+
+<form class="mat-form" method="post" novalidate>
+    <mt-summary />
+    <mt-tabs id="ai-tabs" label="Bereiche der KI">
+        <mt-tab id="general" title="Allgemein" icon="sparkles">
+            <mt-card title="KI in MatTicket" icon="sparkles">
+                <div class="mat-form__grid">
+                    <mt-switch for="Input.Enabled" label="KI eingeschaltet" full="true" />
+                    <mt-switch for="Input.PublicAssistant" label="Assistent in öffentlichen Formularen erlauben" full="true" />
+                </div>
+                <p class="mat-hint">Ohne KI funktioniert alles andere wie gewohnt; Formulare überspringen ihren KI-Schritt dann nicht, sondern bieten gleich das Ticket an.
+                    Verbindungen richtest du unter <a href="/Admin/Ai/Profiles">Profile</a> ein@(Model.RelayConfigured ? "; ohne aktives Profil läuft die KI über das Relay des Betreibers" : "").</p>
+            </mt-card>
+        </mt-tab>
+        <mt-tab id="instructions" title="Anweisungen" icon="file-text">
+            <mt-card title="Grundanweisung der Website" icon="file-text" sub="Die zweite Schicht. Leer heißt: der eingebaute Standardtext.">
+                <div class="mat-form__grid">
+                    <mt-textarea for="Input.BaseInstruction" label="Grundanweisung" rows="8" full="true" placeholder="@AiInstructions.DefaultBase"
+                                 hint="Ton, Zuständigkeiten, was die KI nie sagen soll. Das Antwortformat und die Regeln sind fest und hier nicht änderbar." />
+                </div>
+            </mt-card>
+            <mt-card title="Wie die Anweisung aufgebaut ist" icon="layers">
+                <ol class="mt-steps">
+                    <li><strong>Vorgabe des Betreibers</strong> und je Aktion eine Ergänzung (aus der Konfiguration des Servers)@(string.IsNullOrWhiteSpace(Model.OperatorInstruction) ? ": zurzeit leer" : "").</li>
+                    <li><strong>Grundanweisung der Website</strong>: das Feld oben.</li>
+                    <li><strong>Fester Teil</strong>: Antwortformat (ein JSON-Objekt), Regeln. Niemand kann ihn bearbeiten.</li>
+                    <li><strong>Die Lage</strong>: das Ticket, das Formular, die Eingaben.</li>
+                </ol>
+                @foreach (var (action, text) in Model.Preview)
+                {
+                    <details class="mt-details">
+                        <summary>Vollständige Anweisung anzeigen: @Labels.Of(action)</summary>
+                        <pre class="mt-code mt-code--wrap">@text</pre>
+                    </details>
+                }
+            </mt-card>
+        </mt-tab>
+        <mt-tab id="privacy" title="Datenschutz" icon="shield">
+            <mt-card title="Personenbezogene Daten" icon="shield">
+                <div class="mat-form__grid">
+                    <mt-switch for="Input.SendPersonalData" label="Namen, E-Mail-Adressen und Telefonnummern an die KI senden" full="true" />
+                </div>
+                <p class="mat-hint">Aus: Sie werden vor dem Senden durch Platzhalter ersetzt ([Name], [E-Mail], [Telefon], [IBAN]). Welche Daten die KI überhaupt sieht, entscheidet der Code:
+                    der Assistent im Formular bekommt nur, was der Besucher dort eingegeben hat; es gibt kein Feld, mit dem jemand einen anderen Kunden benennen könnte.</p>
+                <p class="mat-hint">Wo Besucher selbst an die KI schreiben, sollte ein EU-Anbieter wie Mistral genutzt werden. Anbieter in den USA oder China bedeuten eine Übermittlung in ein Drittland, die in die Datenschutzerklärung gehört (für China gibt es keinen Angemessenheitsbeschluss).</p>
+            </mt-card>
+        </mt-tab>
+        <mt-tab id="limits" title="Grenzen" icon="sliders">
+            <mt-card title="Kosten und Missbrauch begrenzen" icon="sliders" sub="Geprüft, bevor gerufen wird. 0 heißt: keine Grenze.">
+                <div class="mat-form__grid">
+                    <mt-input for="Input.UserDailyTokens" label="Tokens pro Mitarbeiter und Tag" type="number" min="0" step="1000" />
+                    <mt-input for="Input.MonthlyTokens" label="Tokens pro Monat (alle zusammen)" type="number" min="0" step="10000" />
+                    <mt-input for="Input.VisitorDailyRuns" label="Antworten pro Besucher und Tag" type="number" min="0" step="1" hint="Ein Besucher ist ein täglich wechselnder Hash seiner Adresse, nie die Adresse." />
+                    <mt-input for="Input.PerMinutePerAddress" label="Anfragen pro Adresse und Minute" type="number" min="0" step="1" />
+                    <mt-input for="Input.MaxTokens" label="Längenlimit einer Antwort (Tokens)" type="number" min="1000" max="64000" step="1000" hint="Großzügig lassen: denkende Modelle verbrauchen ihr Budget zuerst fürs Nachdenken." />
+                    <mt-input for="Input.TimeoutSeconds" label="Zeitlimit (Sekunden)" type="number" min="30" max="600" step="10" />
+                </div>
+                <p class="mat-hint">Nennt ein Anbieter keine Tokenzahl, wird geschätzt (Zeichen geteilt durch 4).</p>
+            </mt-card>
+        </mt-tab>
+    </mt-tabs>
+    <mt-buttons back-href="/Admin/Ai/Profiles" back-text="Zu den Profilen" />
+</form>

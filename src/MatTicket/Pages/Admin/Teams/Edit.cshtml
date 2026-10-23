@@ -1,0 +1,21 @@
+@page
+@model MatTicket.Pages.Admin.Teams.EditModel
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-card title="Team" icon="users">
+        <div class="mat-form__grid">
+            <mt-input for="Input.Name" label="Name" required="true" />
+            <mt-picker for="Input.DepartmentId" label="Abteilung" items="Model.Departments" required="true" />
+            <mt-textarea for="Input.Description" label="Beschreibung" rows="2" full="true" hint="Wofür das Team zuständig ist – hilft auch der KI beim Einordnen." />
+        </div>
+    </mt-card>
+    <mt-card title="Mitglieder" icon="user" sub="Mitglieder sehen die Tickets der Abteilung und des Teams.">
+        <div class="mat-form__grid">
+            <mt-picker for="Input.Members" label="Mitglieder" items="Model.Agents" multiple="true" placeholder="Niemand" full="true" />
+            <mt-picker for="Input.Leads" label="Leitung" items="Model.Agents" multiple="true" placeholder="Keine Leitung" full="true" hint="Die Leitung ist automatisch auch Mitglied." />
+        </div>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Teams" delete-url="@(Model.Team is null ? null : Url.Page("/Admin/Teams/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Dieses Team löschen? Seine Tickets bleiben in der Abteilung, ohne Team." />
+</form>

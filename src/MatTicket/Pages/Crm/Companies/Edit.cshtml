@@ -1,0 +1,89 @@
+@page
+@model MatTicket.Pages.Crm.Companies.EditModel
+@{
+    bool Show(string key) => !Model.Hidden.Contains(key);
+    var sections = Model.Custom.GroupBy(f => string.IsNullOrWhiteSpace(f.Section) ? "Zusatzfelder" : f.Section!).ToList();
+    var c = Model.Company;
+}
+
+@if (Model.Buttons.Count > 0)
+{
+    <div class="mat-actions" aria-label="Weiter in anderen Systemen">
+        @foreach (var b in Model.Buttons)
+        {
+            <a class="mat-btn mat-btn--secondary" href="@b.Url" target="@(b.NewWindow ? "_blank" : null)" rel="noopener noreferrer">@Ui.Icon(b.Icon)<span>@b.Label</span></a>
+        }
+    </div>
+}
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-tabs id="company-tabs" label="Bereiche der Firma">
+        <mt-tab id="general" title="Allgemein" icon="building">
+            <mt-card title="Firma" icon="building" sub="@(c?.SyncTaskId is not null ? $"aus einer Sync-Aufgabe, zuletzt {Fmt.Moment(c.SyncedDate)}" : null)">
+                <div class="mat-form__grid">
+                    <mt-input for="Input.Name" label="Name" required="true" />
+                    @if (Show("CustomerNumber")) { <mt-input for="Input.CustomerNumber" label="Kundennummer" /> }
+                    @if (Show("Phone")) { <mt-input for="Input.Phone" label="Telefon" type="tel" /> }
+                    @if (Show("Email")) { <mt-input for="Input.Email" label="E-Mail" type="email" /> }
+                    @if (Show("Website")) { <mt-input for="Input.Website" label="Website" type="url" /> }
+                    @if (Show("Notes")) { <mt-textarea for="Input.Notes" label="Notizen" rows="3" full="true" /> }
+                </div>
+            </mt-card>
+        </mt-tab>
+        <mt-tab id="address" title="Adresse" icon="map-pin">
+            <mt-card title="Adresse" icon="map-pin">
+                <div class="mat-form__grid">
+                    @if (Show("Street")) { <mt-input for="Input.Street" label="Straße" full="true" autocomplete="street-address" /> }
+                    @if (Show("PostalCode")) { <mt-input for="Input.PostalCode" label="PLZ" autocomplete="postal-code" /> }
+                    @if (Show("City")) { <mt-input for="Input.City" label="Ort" autocomplete="address-level2" /> }
+                    @if (Show("Country")) { <mt-input for="Input.Country" label="Land" autocomplete="country-name" /> }
+                </div>
+            </mt-card>
+            @if (Model.MapUrl is not null)
+            {
+                <partial name="_Map" model="Model.MapUrl" />
+            }
+        </mt-tab>
+        @foreach (var group in sections)
+        {
+            <mt-tab id="@("s-" + Core.Text.Slug.From(group.Key))" title="@group.Key" icon="columns">
+                <mt-card title="@group.Key" icon="columns">
+                    <partial name="_CustomFields" model="((IReadOnlyList<CrmField>)group.ToList(), (IReadOnlyDictionary<string, string>)Model.Extras)" />
+                </mt-card>
+            </mt-tab>
+        }
+        @if (c is not null)
+        {
+            <mt-tab id="contacts" title="Kontakte" icon="users" count="@c.Contacts.Count">
+                <mt-card title="Kontakte" icon="users">
+                    @if (c.Contacts.Count == 0)
+                    {
+                        <p class="mat-muted">Noch keine Kontakte.</p>
+                    }
+                    else
+                    {
+                        <ul class="mat-itemlist">
+                            @foreach (var p in c.Contacts)
+                            {
+                                <li class="mat-item">
+                                    <a class="mat-item__main" href="/Crm/Contacts/Edit?id=@p.Id">
+                                        <span class="mat-item__lead">@Ui.Avatar(p.FullName)</span>
+                                        <span class="mat-item__body"><span class="mat-item__title">@p.FullName</span><span class="mat-item__text">@string.Join(" · ", new[] { p.Position, p.Email, p.Phone }.Where(s => !string.IsNullOrWhiteSpace(s)))</span></span>
+                                        <span class="mat-item__end">@Ui.Icon("chevron-right", "mat-item__chevron")</span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    <div class="mat-actions"><a class="mat-btn mat-btn--secondary" href="/Crm/Contacts/Edit?companyId=@c.Id">@Ui.Icon("user-plus")<span>Kontakt anlegen</span></a></div>
+                </mt-card>
+            </mt-tab>
+            <mt-tab id="tickets" title="Tickets" icon="ticket" count="@Model.Tickets.Count">
+                <partial name="_TicketMiniList" model="Model.Tickets" />
+            </mt-tab>
+        }
+    </mt-tabs>
+    <mt-buttons back-href="/Crm/Companies" delete-url="@(c is null || !Model.IsAdmin ? null : Url.Page("/Crm/Companies/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Diese Firma löschen? Ihre Kontakte bleiben, ohne Firma." />
+</form>

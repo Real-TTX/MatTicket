@@ -1,0 +1,62 @@
+@page "/t/{token:guid}"
+@model MatTicket.Pages.Portal.StatusModel
+@{
+    Layout = "_Public";
+    var t = Model.View.Ticket;
+    var now = DateTime.UtcNow;
+    var tone = t.Status switch { TicketStatus.Waiting => "warn", TicketStatus.Resolved => "ok", TicketStatus.Closed => "plain", _ => "info" };
+}
+
+<div>
+    <p class="mat-muted mat-mono">Ticket @t.Number</p>
+    <h1>@t.Subject</h1>
+    <p class="mt-chips">@Ui.Pill(Labels.ForCustomer(t.Status), tone) <span class="mat-muted">eingegangen am @Fmt.Moment(t.CreateDate)@(t.Department is null ? "" : " · " + t.Department.Name)</span></p>
+</div>
+
+@if (t.Status == TicketStatus.Waiting)
+{
+    <div class="mat-alert mat-alert--warning">@Ui.Icon("clock")<div class="mat-alert__body">Wir warten auf Ihre Antwort. Bitte schreiben Sie uns unten.</div></div>
+}
+
+<ol class="mt-thread" aria-label="Verlauf">
+    <li class="mt-msg mt-msg--customer">
+        <div class="mt-msg__head"><strong>Ihre Anfrage</strong><span class="mt-msg__time">@Fmt.Moment(t.CreateDate)</span></div>
+        <div class="mt-msg__body mt-richtext">@Html.Raw(t.Description)</div>
+    </li>
+    @foreach (var m in Model.View.Messages)
+    {
+        var kind = m.Kind switch { MessageKind.Customer => "customer", MessageKind.Ai => "ai", _ => "reply" };
+        <li class="mt-msg mt-msg--@kind">
+            <div class="mt-msg__head">
+                <strong>@(m.Kind == MessageKind.Customer ? "Sie" : m.Kind == MessageKind.Ai ? "Automatische Antwort (KI)" : m.AuthorName)</strong>
+                <span class="mt-msg__time" title="@Fmt.Moment(m.CreateDate)">@Fmt.Ago(m.CreateDate, now)</span>
+            </div>
+            <div class="mt-msg__body mt-richtext">@Html.Raw(m.Body)</div>
+        </li>
+    }
+</ol>
+
+@if (t.Status != TicketStatus.Closed)
+{
+    <form class="mat-form" method="post" novalidate>
+        <div class="mat-card"><div class="mat-card__body">
+            <div class="mat-field @(ViewData.ModelState["Text"]?.Errors.Count > 0 ? "is-invalid" : "")">
+                <label class="mat-label" for="reply-text">Ihre Nachricht</label>
+                <textarea class="mat-textarea" id="reply-text" name="Text" rows="5" maxlength="8000" required aria-describedby="reply-text-error">@Model.Text</textarea>
+                <span class="mat-error" id="reply-text-error" aria-live="polite">@ViewData.ModelState["Text"]?.Errors.FirstOrDefault()?.ErrorMessage</span>
+            </div>
+            <div class="mat-btn-row">
+                <button type="submit" class="mat-btn mat-btn--primary">@Ui.Icon("send")<span>Nachricht senden</span></button>
+                @if (t.Status is not TicketStatus.Resolved)
+                {
+                    <span class="mat-btn-row__spacer"></span>
+                    <button type="submit" asp-page-handler="Resolve" formnovalidate class="mat-btn mat-btn--secondary" data-confirm="Ist Ihr Anliegen erledigt? Wir schließen das Ticket dann ab." data-confirm-ok="Ja, gelöst">@Ui.Icon("check")<span>Problem gelöst</span></button>
+                }
+            </div>
+        </div></div>
+    </form>
+}
+else
+{
+    <div class="mat-alert mat-alert--info">@Ui.Icon("archive")<div class="mat-alert__body">Dieses Ticket ist abgeschlossen. Für ein neues Anliegen nutzen Sie bitte eines unserer <a href="/hilfe">Formulare</a>.</div></div>
+}

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MatTicket.Core</RootNamespace>
+    <AssemblyName>MatTicket.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Cleans HTML that people (the WYSIWYG editor) or the AI write: an allowlist of tags, attributes and link schemes. -->
+    <PackageReference Include="HtmlSanitizer" Version="9.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MatTicket.Tests" />
+  </ItemGroup>
+
+</Project>

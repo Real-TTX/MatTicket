@@ -1,0 +1,64 @@
+@page
+@model MatTicket.Pages.Admin.Ai.Profiles.IndexModel
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="mat-alert mat-alert--info">
+        @Ui.Icon("info")
+        <div class="mat-alert__body">
+            Noch kein Profil. @(Model.RelayConfigured ? "Bis du eines anlegst, läuft die KI über das Relay des Betreibers." : "Ohne Profil ist die KI ausgeschaltet; alles andere funktioniert wie gewohnt.")
+            Für Besucher, die im Formular mit dem Assistenten schreiben, empfiehlt sich ein Anbieter in der EU (Mistral).
+        </div>
+    </div>
+}
+
+<div class="mat-list">
+    <ul class="mat-itemlist" aria-label="KI-Profile">
+        @foreach (var row in Model.Rows)
+        {
+            var p = row.Profile;
+            <li class="mat-item">
+                <a class="mat-item__main" href="/Admin/Ai/Profiles/Edit?id=@p.Id">
+                    <span class="mat-item__lead">@Ui.Icon(p.Provider == AiProvider.ChatGpt ? "message-circle" : "bot")</span>
+                    <span class="mat-item__body">
+                        <span class="mat-item__title">@p.Name</span>
+                        <span class="mat-item__text">@Labels.Of(p.Provider) · @p.Model@(p.Provider == AiProvider.OpenAiCompatible ? " · " + p.BaseUrl : "")</span>
+                    </span>
+                    <span class="mat-item__end mt-chips">
+                        @if (p.IsActive) { @Ui.Pill("aktiv", "ok", "check") }
+                        @if (!row.HasKey) { @Ui.Pill(p.Provider == AiProvider.ChatGpt ? "nicht angemeldet" : "kein Schlüssel", "warn", "alert") }
+                    </span>
+                </a>
+                <div class="mat-item__aside">
+                    @if (!p.IsActive)
+                    {
+                        <form method="post" asp-page-handler="Activate" asp-route-id="@p.Id" class="mt-inline-form">
+                            <button type="submit" class="mat-btn mat-btn--ghost mat-btn--sm">@Ui.Icon("check")<span>Aktivieren</span></button>
+                        </form>
+                    }
+                    <form method="post" asp-page-handler="Duplicate" asp-route-id="@p.Id" class="mt-inline-form">
+                        <button type="submit" class="mat-btn mat-btn--ghost mat-btn--icon mat-btn--sm" aria-label="Kopieren" data-tip="Kopieren (ohne Schlüssel)">@Ui.Icon("copy")</button>
+                    </form>
+                </div>
+            </li>
+        }
+    </ul>
+    <div class="mat-actions">
+        <a class="mat-btn mat-btn--primary" href="/Admin/Ai/Profiles/Edit">@Ui.Icon("plus")<span>Neues Profil</span></a>
+        @if (Model.Rows.Count > 0 || Model.RelayConfigured)
+        {
+            <form method="post" asp-page-handler="Test" class="mt-inline-form">
+                <button type="submit" class="mat-btn mat-btn--secondary">@Ui.Icon("plug")<span>Aktives Profil testen</span></button>
+            </form>
+        }
+    </div>
+</div>
+
+<mt-card title="Datenschutz bei der Anbieterwahl" icon="shield">
+    <ul class="mt-steps">
+        <li><strong>Mistral (EU)</strong>: Verarbeitung in der EU. Die Wahl, wo Besucher selbst an die KI schreiben (Assistent im Formular).</li>
+        <li><strong>OpenAI, OpenRouter (USA)</strong>: eine Übermittlung in ein Drittland. Sie muss in der Datenschutzerklärung stehen.</li>
+        <li><strong>DeepSeek (China)</strong>: Übermittlung in ein Drittland ohne Angemessenheitsbeschluss. Für personenbezogene Daten nicht geeignet.</li>
+    </ul>
+    <p class="mat-muted">Personenbezogene Daten gehen nur an das Modell, wenn das unter <a href="/Admin/Ai">Anweisungen und Grenzen</a> ausdrücklich eingeschaltet ist.</p>
+</mt-card>

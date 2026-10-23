@@ -1,0 +1,50 @@
+@page
+@model MatTicket.Pages.Admin.Departments.EditModel
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-card title="Abteilung" icon="briefcase">
+        <div class="mat-form__grid">
+            <mt-input for="Input.Name" label="Name" required="true" />
+            <mt-input for="Input.Email" label="E-Mail-Adresse" type="email" hint="Absender für Antworten (Antwort an) und Adresse für neue Tickets. Optional." />
+            <mt-textarea for="Input.Description" label="Beschreibung" rows="2" full="true" hint="Wofür die Abteilung zuständig ist – hilft auch der KI beim Einordnen." />
+            <div class="mat-field">
+                <label class="mat-label" for="Input_Colour">Farbe</label>
+                <div class="mat-picker" data-picker="colour" data-clearable>
+                    <input class="mat-picker__input" id="Input_Colour" name="Input.Colour" value="@Model.Input.Colour" />
+                </div>
+            </div>
+            <mt-input for="Input.SortOrder" label="Reihenfolge" type="number" step="1" />
+        </div>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Departments" delete-url="@(Model.Department is null ? null : Url.Page("/Admin/Departments/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Diese Abteilung mit ihren Teams löschen? Das geht nur, wenn keine offenen Tickets mehr darin sind." />
+</form>
+
+@if (Model.Department is { } d)
+{
+    <mt-card title="Teams" icon="users" sub="@($"{d.Teams.Count} Teams")">
+        @if (d.Teams.Count == 0)
+        {
+            <p class="mat-muted">Diese Abteilung hat noch keine Teams.</p>
+        }
+        else
+        {
+            <ul class="mat-itemlist">
+                @foreach (var team in d.Teams.OrderBy(t => t.Name))
+                {
+                    <li class="mat-item">
+                        <a class="mat-item__main" href="/Admin/Teams/Edit?id=@team.Id">
+                            <span class="mat-item__lead">@Ui.Icon("users")</span>
+                            <span class="mat-item__body"><span class="mat-item__title">@team.Name</span><span class="mat-item__text">@team.Description</span></span>
+                            <span class="mat-item__end">@Ui.Icon("chevron-right", "mat-item__chevron")</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+        <div class="mat-actions">
+            <a class="mat-btn mat-btn--secondary" href="/Admin/Teams/Edit?departmentId=@d.Id">@Ui.Icon("plus")<span>Team anlegen</span></a>
+        </div>
+    </mt-card>
+}

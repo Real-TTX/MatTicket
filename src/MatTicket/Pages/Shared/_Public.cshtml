@@ -1,0 +1,53 @@
+@inject IconSprite Sprite
+@inject SettingStore Settings
+@{
+    // The public pages (the help portal, a form, the status page of a ticket): no menu, the name of the service on top, privacy and imprint below.
+    var shell = ShellFactory.Bare();
+    var title = ViewData["Title"] as string ?? "Service";
+    var site = Settings.Get<SiteSettings>(SettingStore.Site);
+}
+<!DOCTYPE html>
+<html lang="de" data-app="matticket" data-sw="@(AppVersion.Current)-@(Sprite.Hash)"
+      data-dlg-ok="OK" data-dlg-cancel="Abbrechen" data-dlg-close="Schließen" data-dlg-confirm="Bitte bestätigen" data-dlg-notice="Hinweis" data-dlg-input="Eingabe"
+      data-msg-required="Bitte füllen Sie dieses Feld aus." data-msg-type="Bitte geben Sie einen gültigen Wert ein." data-msg-pattern="Das Format stimmt nicht." data-copied="Kopiert">
+<partial name="_Head" model="(shell, title)" />
+<body>
+    <a class="mat-skip" href="#main">Zum Inhalt springen</a>
+    @Html.Raw(Sprite.Html)
+    <div class="mt-public">
+        <header class="mt-public__head">
+            <a class="mt-public__brand" href="/hilfe">
+                @Ui.Logo("sm")
+                <span>@site.ServiceName@(string.IsNullOrWhiteSpace(site.Company) ? "" : " · " + site.Company)</span>
+            </a>
+        </header>
+
+        <div class="mat-alert mat-alert--warning mt-offline" role="status" data-offline-banner hidden>
+            @Ui.Icon("wifi-off")
+            <div class="mat-alert__body"><strong>Keine Verbindung.</strong> <span data-offline-text>Ihre Eingaben bleiben auf der Seite. Senden geht wieder, sobald die Verbindung zurück ist.</span></div>
+            <div class="mat-alert__actions"><button type="button" class="mat-btn mat-btn--secondary mat-btn--sm" data-reconnect>@Ui.Icon("refresh")<span>Erneut verbinden</span></button></div>
+        </div>
+
+        <main class="mt-public__main" id="main">
+            @RenderBody()
+        </main>
+
+        <footer class="mt-public__foot">
+            @if (!string.IsNullOrWhiteSpace(site.PrivacyUrl)) { <a href="@site.PrivacyUrl" rel="noopener">Datenschutz</a> }
+            @if (!string.IsNullOrWhiteSpace(site.ImprintUrl)) { <a href="@site.ImprintUrl" rel="noopener">Impressum</a> }
+            <a href="/hilfe">Alle Formulare</a>
+        </footer>
+    </div>
+    @if (TempData["Flash"] is string flash)
+    {
+        <div data-toast="@flash" data-tone="success" hidden></div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div data-toast="@error" data-tone="error" hidden></div>
+    }
+    <script src="~/ui/matui.js?v=@Sprite.Hash"></script>
+    <script src="~/js/app.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

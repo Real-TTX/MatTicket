@@ -1,0 +1,50 @@
+@page
+@model MatTicket.Pages.Admin.Sync.Connections.EditModel
+@{
+    var kinds = Controls.Options.Of<ConnectionKind>(Labels.Of);
+    var c = Model.Connection;
+}
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-card title="Verbindung" icon="database">
+        <div class="mat-form__grid">
+            <mt-input for="Input.Name" label="Name" required="true" />
+            <mt-select for="Input.Kind" label="Datenbank" items="kinds" />
+            <mt-input for="Input.ConnectionString" label="Verbindungszeichenfolge" type="password" autocomplete="off" full="true" required="@(c is null)"
+                      hint="@(c is null ? "Wird verschlüsselt gespeichert und nie wieder angezeigt." : "Gespeichert und verschlüsselt. Leer lassen, um sie zu behalten.")" />
+            <mt-textarea for="Input.Note" label="Notiz" rows="2" full="true" />
+        </div>
+        <div class="mat-alert mat-alert--info">
+            @Ui.Icon("info")
+            <div class="mat-alert__body">
+                <strong>Beispiele</strong>
+                <ul class="mat-alert__list">
+                    <li class="mat-mono">Server=sql01;Database=NAV;User Id=matticket_read;Password=…;TrustServerCertificate=true</li>
+                    <li class="mat-mono">Host=erp-db;Database=erp;Username=matticket_read;Password=…</li>
+                    <li class="mat-mono">Server=mysql01;Database=shop;User=matticket_read;Password=…</li>
+                </ul>
+                Gib MatTicket einen Benutzer, der nur lesen darf. Abfragen laufen bei PostgreSQL zusätzlich in einer schreibgeschützten Transaktion.
+            </div>
+        </div>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Sync/Connections" delete-url="@(c is null ? null : Url.Page("/Admin/Sync/Connections/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Diese Verbindung löschen?" />
+</form>
+
+@if (c is not null)
+{
+    <mt-card title="Test" icon="plug">
+        @if (c.LastTestDate is not null)
+        {
+            <p>@(c.LastTestOk == true ? Ui.Pill("verbunden", "ok", "check") : Ui.Pill("Fehler", "error", "x-circle")) <span class="mat-muted">@Fmt.Moment(c.LastTestDate):</span> @c.LastTestMessage</p>
+        }
+        else
+        {
+            <p class="mat-muted">Noch nicht getestet.</p>
+        }
+        <form method="post" asp-page-handler="Test" asp-route-id="@c.Id" class="mat-actions">
+            <button type="submit" class="mat-btn mat-btn--secondary">@Ui.Icon("plug")<span>Verbindung testen</span></button>
+        </form>
+    </mt-card>
+}

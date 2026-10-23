@@ -1,0 +1,94 @@
+@page
+@model MatTicket.Pages.Admin.Forms.DesignerModel
+@*
+    The designer. The markup is the frame; designer.js draws the steps, the palette, the properties and the flow from the JSON below.
+    Without the script the page says so (the designer needs it).
+*@
+
+<div class="mat-page__head mt-designer__head">
+    <div class="mat-page__title">
+        <h1>@Model.Form.Name</h1>
+        <p class="mat-page__sub mt-chips">
+            <span class="mat-mono">/@Model.Form.Slug</span>
+            @Labels.Pill(Model.Form.State)
+            <span class="mat-muted" data-designer-status aria-live="polite">Alles gespeichert.</span>
+        </p>
+    </div>
+</div>
+
+<script type="application/json" id="designer-boot">@Html.Raw(Model.BootJson.Replace("</", "<\\/"))</script>
+
+<noscript>
+    <div class="mat-alert mat-alert--warning">@Ui.Icon("alert")<div class="mat-alert__body">Der Designer braucht JavaScript.</div></div>
+</noscript>
+
+<div class="mt-designer" data-designer data-save-url="@Url.Page("/Admin/Forms/Designer", "Save", new { id = Model.Id })">
+    <div class="mat-toolbar mt-designer__bar" role="toolbar" aria-label="Designer">
+        <div class="mat-seg" role="group" aria-label="Ansicht">
+            <button type="button" class="mat-seg__btn" data-view="content" aria-pressed="true">@Ui.Icon("layers")<span>Inhalt</span></button>
+            <button type="button" class="mat-seg__btn" data-view="flow" aria-pressed="false">@Ui.Icon("workflow")<span>Ablauf</span></button>
+        </div>
+        <span class="mat-toolbar__spacer"></span>
+        <div class="mat-toolbar__end">
+            <span class="mt-designer__check" data-designer-check></span>
+            <a class="mat-btn mat-btn--ghost" href="/@Model.Form.Slug?preview=1" target="_blank" rel="noopener" data-designer-preview>@Ui.Icon("eye")<span>Vorschau</span></a>
+            <a class="mat-btn mat-btn--ghost" href="/Admin/Forms/Edit?id=@Model.Id">@Ui.Icon("settings")<span>Einstellungen</span></a>
+            <button type="button" class="mat-btn mat-btn--primary" data-designer-save>@Ui.Icon("save")<span>Speichern</span></button>
+        </div>
+    </div>
+
+    <div class="mt-designer__body" data-designer-content>
+        <aside class="mt-designer__side" aria-label="Schritte und Bausteine">
+            <section class="mat-card">
+                <div class="mat-card__head">@Ui.Icon("list")<h2 class="mat-card__title">Schritte</h2></div>
+                <div class="mat-card__body">
+                    <ul class="mt-steplist" data-steps aria-label="Schritte"></ul>
+                    <div class="mt-addstep" data-add-step></div>
+                </div>
+            </section>
+            <section class="mat-card">
+                <div class="mat-card__head">@Ui.Icon("plus")<h2 class="mat-card__title">Bausteine</h2></div>
+                <div class="mat-card__body">
+                    <p class="mat-hint">Ziehen oder klicken: fügt unter dem gewählten Baustein ein.</p>
+                    <div class="mt-palette" data-palette></div>
+                </div>
+            </section>
+            <section class="mat-card">
+                <div class="mat-card__head">@Ui.Icon("list-checks")<h2 class="mat-card__title">Fragenkatalog</h2></div>
+                <div class="mat-card__body">
+                    <input class="mat-input mat-input--sm" type="search" placeholder="Frage suchen" aria-label="Fragenkatalog durchsuchen" data-catalog-search />
+                    <div class="mt-palette mt-palette--list" data-catalog></div>
+                    <a class="mat-hint" href="/Admin/Questions" target="_blank" rel="noopener">Katalog bearbeiten</a>
+                </div>
+            </section>
+        </aside>
+
+        <section class="mt-designer__canvas" aria-label="Der gewählte Schritt, wie Besucher ihn sehen">
+            <div class="mt-pf mt-pf--design" data-canvas></div>
+        </section>
+
+        <aside class="mt-designer__props" aria-label="Eigenschaften">
+            <section class="mat-card">
+                <div class="mat-card__head">@Ui.Icon("sliders")<h2 class="mat-card__title" data-props-title>Eigenschaften</h2></div>
+                <div class="mat-card__body mat-form" data-props></div>
+            </section>
+        </aside>
+    </div>
+
+    <div class="mt-designer__flowwrap" data-designer-flow hidden>
+        <div class="mt-flow" data-flow tabindex="0" aria-label="Ablauf: Schritte und Wege">
+            <svg class="mt-flow__edges" data-flow-edges aria-hidden="true"></svg>
+            <div class="mt-flow__nodes" data-flow-nodes></div>
+        </div>
+        <aside class="mt-designer__props" aria-label="Eigenschaften im Ablauf">
+            <section class="mat-card">
+                <div class="mat-card__head">@Ui.Icon("sliders")<h2 class="mat-card__title" data-flow-props-title>Schritt</h2></div>
+                <div class="mat-card__body mat-form" data-flow-props></div>
+            </section>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/designer.js" asp-append-version="true"></script>
+}

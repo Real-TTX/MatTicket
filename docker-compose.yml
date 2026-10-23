@@ -1,0 +1,37 @@
+# MatTicket – Release (Branch main, Image :latest)
+#   docker compose up -d        →  http://localhost:2740
+# Der erste Aufruf legt den Administrator an (es gibt kein Standardpasswort).
+# Update: docker compose pull && docker compose up -d (die Datenbank migriert sich beim Start selbst).
+# Für mehr als das lokale Netz einen Reverse-Proxy mit TLS davorsetzen.
+name: matticket
+
+services:
+  web:
+    image: ghcr.io/real-ttx/matticket:latest
+    restart: unless-stopped
+    ports:
+      - "2740:2740"
+    volumes:
+      - web-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: matticket
+      POSTGRES_USER: matticket
+      POSTGRES_PASSWORD: matticket
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U matticket -d matticket"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  web-data:
+  db-data:

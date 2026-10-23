@@ -1,0 +1,25 @@
+@page
+@model MatTicket.Pages.Admin.Crm.Fields.EditModel
+@{
+    var entities = Controls.Options.Of<CrmEntity>(e => e == CrmEntity.Company ? "Firmen" : "Kontakte");
+    var types = Controls.Options.Of<CustomFieldType>(Labels.Of);
+}
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-card title="Feld" icon="columns">
+        <div class="mat-form__grid">
+            <mt-radios for="Input.Entity" label="Für" items="entities" full="true" />
+            <mt-input for="Input.Label" label="Beschriftung" required="true" />
+            <mt-input for="Input.Key" label="Schlüssel" hint="Für Vorlagen: {x.schlüssel}. Leer: aus der Beschriftung." />
+            <mt-select for="Input.Type" label="Art" items="types" />
+            <mt-textarea for="Input.Options" label="Auswahlmöglichkeiten" rows="5" full="true" show-if="Input.Type" show-value="Select" hint="Eine pro Zeile." />
+            <mt-input for="Input.Section" label="Reiter" hint="Der Reiter der Seite, auf dem das Feld steht. Leer: Zusatzfelder." />
+            <mt-input for="Input.SortOrder" label="Reihenfolge" type="number" step="1" />
+            <mt-input for="Input.Hint" label="Hinweis" full="true" />
+            <mt-switch for="Input.Required" label="Pflichtfeld" full="true" />
+        </div>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Crm/Fields" delete-url="@(Model.Field is null ? null : Url.Page("/Admin/Crm/Fields/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Dieses Feld löschen? Die Werte werden nicht mehr gezeigt." />
+</form>

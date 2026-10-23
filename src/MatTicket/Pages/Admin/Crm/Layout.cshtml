@@ -1,0 +1,35 @@
+@page
+@model MatTicket.Pages.Admin.Crm.LayoutModel
+
+<partial name="_LinkTabs" model="Model.Tabs" />
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Entity" value="@Model.Entity" />
+    <mt-summary />
+    <mt-card title="Spalten der Liste" icon="table" sub="Ankreuzen, was als Spalte erscheint; die Reihenfolge änderst du am Griff (oder mit Leertaste und Pfeiltasten). Höchstens acht Spalten, die erste ist der Link zum Datensatz.">
+        <ul class="mat-itemlist mt-layout-list" data-itemlist data-reorder aria-label="Spalten der Liste">
+            @foreach (var f in Model.Ordered)
+            {
+                var id = "col-" + f.Key.Replace('.', '-');
+                <li class="mat-item" data-item-key="@f.Key">
+                    <span class="mat-item__handle" aria-label="@f.Label verschieben">@Ui.Icon("grip")</span>
+                    <label class="mat-item__main" for="@id">
+                        <span class="mat-item__lead"><input type="checkbox" class="mat-item__check" id="@id" name="Columns" value="@f.Key" checked="@Model.Layout.ListColumns.Contains(f.Key)" /></span>
+                        <span class="mat-item__body"><span class="mat-item__title">@f.Label</span><span class="mat-item__text mat-mono">@(f.BuiltIn ? f.Key : f.Key + " · eigenes Feld")</span></span>
+                    </label>
+                </li>
+            }
+        </ul>
+    </mt-card>
+
+    <mt-card title="Felder auf der Seite" icon="eye-off" sub="Eingebaute Felder, die ihr nicht braucht, verschwinden von der Seite. Pflichtfelder bleiben.">
+        <div class="mat-checks">
+            @foreach (var f in Model.Fields.Where(f => f.BuiltIn && !f.Required))
+            {
+                <label class="mat-check"><input type="checkbox" name="Hidden" value="@f.Key" checked="@Model.Layout.Hidden.Contains(f.Key)" /><span class="mat-check__text">@f.Label ausblenden</span></label>
+            }
+        </div>
+        <p class="mat-hint">Eigene Felder legst du unter <a href="/Admin/Crm/Fields">Felder</a> an, Knöpfe zu anderen Systemen unter <a href="/Admin/Crm/Actions">Knöpfe</a>.</p>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Crm/Fields" />
+</form>

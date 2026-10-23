@@ -1,0 +1,15 @@
+@model ListPageModel
+@*
+    A list page as every CRUD list is: the toolbar above, the table, the pager directly below, the actions under it on the left (create first).
+*@
+<div class="mat-list">
+    <partial name="_Toolbar" model="Model.Toolbar" />
+    <partial name="_Table" model="Model.Table" />
+    <partial name="_Pager" model="Model.Pager" />
+    @if (Model.NewHref is not null)
+    {
+        <div class="mat-actions">
+            <a class="mat-btn mat-btn--primary" href="@Model.NewHref">@Ui.Icon(Model.NewIcon)<span>@Model.NewText</span></a>
+        </div>
+    }
+</div>

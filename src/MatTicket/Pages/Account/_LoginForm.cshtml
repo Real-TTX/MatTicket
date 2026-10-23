@@ -1,0 +1,10 @@
+@model MatTicket.Pages.Account.LoginModel
+<form class="mat-form" method="post" action="/Account/Login" asp-antiforgery="true" novalidate>
+    <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+    <mt-summary title="Die Anmeldung hat nicht geklappt." />
+    <mt-input for="Input.Email" label="E-Mail-Adresse" type="email" autocomplete="username" inputmode="email" />
+    <mt-input for="Input.Password" label="Passwort" type="password" autocomplete="current-password" />
+    <div class="mat-btn-row mat-btn-row--plain">
+        <button type="submit" class="mat-btn @(Model.EntraAvailable ? "mat-btn--secondary" : "mat-btn--primary") mat-btn--block">@Ui.Icon("login")<span>Anmelden</span></button>
+    </div>
+</form>

@@ -1,0 +1,74 @@
+@page
+@model MatTicket.Pages.Crm.Contacts.EditModel
+@{
+    bool Show(string key) => !Model.Hidden.Contains(key);
+    var sections = Model.Custom.GroupBy(f => string.IsNullOrWhiteSpace(f.Section) ? "Zusatzfelder" : f.Section!).ToList();
+    var c = Model.Contact;
+    var salutations = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> { new("Frau", "Frau"), new("Herr", "Herr"), new("Divers", "Divers") };
+}
+
+@if (Model.Buttons.Count > 0 || c is not null)
+{
+    <div class="mat-actions" aria-label="Aktionen zum Kontakt">
+        @if (c is not null)
+        {
+            <a class="mat-btn mat-btn--primary" href="/Tickets/Create?contactId=@c.Id">@Ui.Icon("plus")<span>Ticket anlegen</span></a>
+        }
+        @foreach (var b in Model.Buttons)
+        {
+            <a class="mat-btn mat-btn--secondary" href="@b.Url" target="@(b.NewWindow ? "_blank" : null)" rel="noopener noreferrer">@Ui.Icon(b.Icon)<span>@b.Label</span></a>
+        }
+    </div>
+}
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-tabs id="contact-tabs" label="Bereiche des Kontakts">
+        <mt-tab id="general" title="Person" icon="user">
+            <mt-card title="Person" icon="user" sub="@(c?.SyncTaskId is not null ? $"aus einer Sync-Aufgabe, zuletzt {Fmt.Moment(c.SyncedDate)}" : null)">
+                <div class="mat-form__grid">
+                    @if (Show("Salutation")) { <mt-select for="Input.Salutation" label="Anrede" items="salutations" empty="–" /> }
+                    @if (Show("FirstName")) { <mt-input for="Input.FirstName" label="Vorname" autocomplete="given-name" /> }
+                    <mt-input for="Input.LastName" label="Nachname" required="true" autocomplete="family-name" />
+                    @if (Show("CompanyName")) { <mt-picker for="CompanyId" label="Firma" items="Model.Companies" placeholder="Keine Firma" /> }
+                    @if (Show("Position")) { <mt-input for="Input.Position" label="Position" /> }
+                    @if (Show("Email")) { <mt-input for="Input.Email" label="E-Mail" type="email" inputmode="email" /> }
+                    @if (Show("Phone")) { <mt-input for="Input.Phone" label="Telefon" type="tel" /> }
+                    @if (Show("Mobile")) { <mt-input for="Input.Mobile" label="Mobil" type="tel" /> }
+                    @if (Show("CustomerNumber")) { <mt-input for="Input.CustomerNumber" label="Kundennummer" hint="Leer: die der Firma." /> }
+                    @if (Show("Notes")) { <mt-textarea for="Input.Notes" label="Notizen" rows="3" full="true" /> }
+                </div>
+            </mt-card>
+        </mt-tab>
+        <mt-tab id="address" title="Adresse" icon="map-pin">
+            <mt-card title="Adresse" icon="map-pin" sub="Leer: die Adresse der Firma.">
+                <div class="mat-form__grid">
+                    @if (Show("Street")) { <mt-input for="Input.Street" label="Straße" full="true" /> }
+                    @if (Show("PostalCode")) { <mt-input for="Input.PostalCode" label="PLZ" /> }
+                    @if (Show("City")) { <mt-input for="Input.City" label="Ort" /> }
+                    @if (Show("Country")) { <mt-input for="Input.Country" label="Land" /> }
+                </div>
+            </mt-card>
+            @if (Model.MapUrl is not null)
+            {
+                <partial name="_Map" model="Model.MapUrl" />
+            }
+        </mt-tab>
+        @foreach (var group in sections)
+        {
+            <mt-tab id="@("s-" + Core.Text.Slug.From(group.Key))" title="@group.Key" icon="columns">
+                <mt-card title="@group.Key" icon="columns">
+                    <partial name="_CustomFields" model="((IReadOnlyList<CrmField>)group.ToList(), (IReadOnlyDictionary<string, string>)Model.Extras)" />
+                </mt-card>
+            </mt-tab>
+        }
+        @if (c is not null)
+        {
+            <mt-tab id="tickets" title="Tickets" icon="ticket" count="@Model.Tickets.Count">
+                <partial name="_TicketMiniList" model="Model.Tickets" />
+            </mt-tab>
+        }
+    </mt-tabs>
+    <mt-buttons back-href="/Crm/Contacts" delete-url="@(c is null || !Model.IsAdmin ? null : Url.Page("/Crm/Contacts/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Diesen Kontakt löschen? Seine Tickets bleiben erhalten." />
+</form>

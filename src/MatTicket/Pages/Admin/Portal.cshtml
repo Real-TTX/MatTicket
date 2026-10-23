@@ -1,0 +1,20 @@
+@page
+@model MatTicket.Pages.Admin.PortalModel
+
+<form class="mat-form" method="post" novalidate>
+    <mt-summary />
+    <mt-card title="Wer spricht" icon="globe">
+        <div class="mat-form__grid">
+            <mt-input for="Input.ServiceName" label="Name des Service" required="true" hint="Steht über den öffentlichen Seiten, z. B. „Service-Portal“ oder „IT-Hilfe“." />
+            <mt-input for="Input.Company" label="Firma" />
+            <mt-input for="Input.PrivacyUrl" label="Datenschutzerklärung" type="url" placeholder="https://…" />
+            <mt-input for="Input.ImprintUrl" label="Impressum" type="url" placeholder="https://…" />
+            <mt-textarea for="Input.PortalIntro" label="Text des Hilfe-Portals" rows="3" full="true" hint="Steht auf /hilfe über der Liste der Formulare." />
+        </div>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Forms" back-text="Zu den Formularen" />
+</form>
+
+<mt-card title="Für Suchmaschinen und Sprachmodelle" icon="search">
+    <p>Nur veröffentlichte Formulare, die gefunden werden dürfen, stehen in <a href="/robots.txt">robots.txt</a>, der <a href="/sitemap.xml">Sitemap</a> und in <a href="/llms.txt">llms.txt</a>. Alles andere ist für Crawler gesperrt.</p>
+</mt-card>

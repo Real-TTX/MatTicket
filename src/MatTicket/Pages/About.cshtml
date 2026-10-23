@@ -1,0 +1,32 @@
+@page
+@inject IconSprite Sprite
+@{
+    // Reached through the version number at the bottom of the menu.
+    ViewData["Title"] = "Über MatTicket";
+    ViewData["PageSub"] = "Version, Bausteine und Lizenzen.";
+    ViewData["Crumbs"] = Crumbs.Of(("Über MatTicket", null));
+    ViewData["Width"] = "narrow";
+    var version = AppVersion.Current;
+    var channel = version.StartsWith("nightly", StringComparison.Ordinal) ? "Entwicklung (Branch dev)" : version.StartsWith("local", StringComparison.Ordinal) ? "Lokaler Build" : "Release (Branch main)";
+}
+
+<mt-card title="MatTicket" icon="mt-logo">
+    <div class="mat-auth__brand">@Ui.Logo("lg")</div>
+    <p>Tickets und Aufgaben mit Formular-Designer, Ablauf-Editor, kleinem CRM, Sync-Aufgaben und KI-Assistent – als installierbare App für Desktop und Handy.</p>
+    <dl class="mat-kv">
+        <dt>Version</dt><dd class="mat-mono">@version</dd>
+        <dt>Kanal</dt><dd>@channel</dd>
+        <dt>Laufzeit</dt><dd>@System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription</dd>
+        <dt>Design</dt><dd>MatUi @Sprite.MatUiVersion aus MatDesign</dd>
+        <dt>Autor</dt><dd>Matthias Schmoldt</dd>
+    </dl>
+</mt-card>
+
+<mt-card title="Bausteine und Lizenzen" icon="book">
+    <ul class="mt-steps">
+        <li>ASP.NET Core, Entity Framework Core (MIT) mit Npgsql und PostgreSQL</li>
+        <li>MatUi aus MatDesign; Symbole von Lucide (ISC)</li>
+        <li>HtmlSanitizer (MIT), MailKit (MIT), QRCoder (MIT), Microsoft.Data.SqlClient (MIT), MySqlConnector (MIT)</li>
+    </ul>
+    <p class="mat-muted"><a href="/llms.txt">llms.txt</a> · <a href="/robots.txt">robots.txt</a> · <a href="/hilfe">Hilfe-Portal</a></p>
+</mt-card>

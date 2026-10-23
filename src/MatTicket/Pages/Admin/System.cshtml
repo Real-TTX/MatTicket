@@ -1,0 +1,37 @@
+@page
+@model MatTicket.Pages.Admin.SystemModel
+@{
+    var f = Model.Facts;
+}
+
+<div class="mat-grid mt-stats">
+    @Ui.Kpi("Tickets", Fmt.Integer(f.Tickets), $"{f.OpenTickets} offen", "ticket", href: "/Tickets?scope=alle")
+    @Ui.Kpi("Formulare", Fmt.Integer(f.Forms), null, "template", href: "/Admin/Forms")
+    @Ui.Kpi("Firmen", Fmt.Integer(f.Companies), $"{f.Contacts} Kontakte", "building", href: "/Crm/Companies")
+    @Ui.Kpi("Benutzer", Fmt.Integer(f.Users), null, "users", href: "/Admin/Users")
+    @Ui.Kpi("KI-Läufe", Fmt.Integer(f.AiRuns), null, "sparkles", href: "/Admin/Ai/Runs")
+</div>
+
+<mt-card title="Installation" icon="server">
+    <dl class="mat-kv">
+        <dt>Version</dt><dd class="mat-mono"><a href="/About">@Model.Version</a></dd>
+        <dt>Datenbank</dt><dd>@f.Database</dd>
+        <dt>Datenvolume</dt><dd class="mat-mono">@Model.DataDir</dd>
+        <dt>Sync-Aufgaben</dt><dd>@f.SyncTasks</dd>
+    </dl>
+    <p class="mat-hint">Im Datenvolume liegen die Schlüssel der App (Sitzungen, Verschlüsselung) und die KI-Schlüssel und -Anmeldungen. Sie gehören nicht in ein Backup der Datenbank; ohne die Schlüssel sind gespeicherte Geheimnisse nicht lesbar.</p>
+</mt-card>
+
+<mt-card title="Beispieldaten" icon="box">
+    @if (Model.HasSampleData)
+    {
+        <p>@Ui.Pill("angelegt", "ok", "check") Die Beispieldaten sind schon da. Probiere die Formulare: <a href="/it-support" target="_blank" rel="noopener">/it-support</a> und <a href="/service" target="_blank" rel="noopener">/service</a>.</p>
+    }
+    else
+    {
+        <p>Legt eine kleine Firma zum Ausprobieren an: vier Abteilungen mit Teams, Kategorien mit Unterkategorien, einen Fragenkatalog, zwei veröffentlichte Formulare (eines mit KI-Assistent und Verzweigung), Firmen und Kontakte mit eigenen Feldern und Knöpfen, und ein paar Tickets. Du wirst Mitglied des IT-Teams.</p>
+        <form method="post" asp-page-handler="Sample" class="mat-actions">
+            <button type="submit" class="mat-btn mat-btn--primary" data-confirm="Beispieldaten anlegen?" data-confirm-ok="Anlegen">@Ui.Icon("box")<span>Beispieldaten anlegen</span></button>
+        </form>
+    }
+</mt-card>

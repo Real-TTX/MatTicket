@@ -1,0 +1,56 @@
+@page
+@model MatTicket.Pages.Admin.Categories.EditModel
+@{
+    var priorities = Controls.Options.Of<TicketPriority>(Labels.Of);
+}
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-card title="Kategorie" icon="tag">
+        <div class="mat-form__grid">
+            <mt-input for="Input.Name" label="Name" required="true" />
+            <mt-picker for="Input.ParentId" label="Gehört zu" items="Model.Parents" placeholder="Hauptkategorie" hint="Leer: eine Hauptkategorie. Sonst eine Unterkategorie (eine Ebene)." />
+            <mt-textarea for="Input.Description" label="Beschreibung" rows="2" full="true" hint="Steht im Formular unter der Auswahl und hilft der KI beim Einordnen." />
+            <mt-input for="Input.Icon" label="Symbol" hint="Name eines Symbols, z. B. monitor, printer, mail, wrench." />
+            <mt-input for="Input.SortOrder" label="Reihenfolge" type="number" step="1" />
+            <mt-switch for="Input.IsActive" label="Im Formular anbieten" full="true" />
+        </div>
+    </mt-card>
+    <mt-card title="Wohin Tickets dieser Kategorie gehen" icon="route" sub="Leer bei einer Unterkategorie: wie die Hauptkategorie.">
+        <div class="mat-form__grid">
+            <mt-picker for="Input.DepartmentId" label="Abteilung" items="Model.Departments" placeholder="Keine" />
+            <mt-picker for="Input.TeamId" label="Team" items="Model.Teams" placeholder="Kein Team" />
+            <mt-radios for="Input.DefaultPriority" label="Priorität" items="priorities" full="true" />
+        </div>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Categories" delete-url="@(Model.Category is null ? null : Url.Page("/Admin/Categories/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Diese Kategorie löschen? Tickets behalten ihre Angaben." />
+</form>
+
+@if (Model.Category is { ParentId: null } c)
+{
+    <mt-card title="Unterkategorien" icon="list">
+        @if (c.Children.Count == 0)
+        {
+            <p class="mat-muted">Noch keine Unterkategorien.</p>
+        }
+        else
+        {
+            <ul class="mat-itemlist">
+                @foreach (var child in c.Children.OrderBy(x => x.SortOrder).ThenBy(x => x.Name))
+                {
+                    <li class="mat-item">
+                        <a class="mat-item__main" href="/Admin/Categories/Edit?id=@child.Id">
+                            <span class="mat-item__lead">@Ui.Icon("tag")</span>
+                            <span class="mat-item__body"><span class="mat-item__title">@child.Name</span><span class="mat-item__text">@child.Description</span></span>
+                            <span class="mat-item__end">@Ui.Icon("chevron-right", "mat-item__chevron")</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+        <div class="mat-actions">
+            <a class="mat-btn mat-btn--secondary" href="/Admin/Categories/Edit?parentId=@c.Id">@Ui.Icon("plus")<span>Unterkategorie anlegen</span></a>
+        </div>
+    </mt-card>
+}

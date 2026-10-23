@@ -1,0 +1,33 @@
+@page
+@model MatTicket.Pages.Admin.MailModel
+@{
+    var security = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> { new("STARTTLS (Port 587)", "starttls"), new("SSL/TLS (Port 465)", "ssl"), new("Keine (nur im internen Netz)", "none") };
+}
+
+<form class="mat-form" method="post" asp-page-handler="" novalidate>
+    <mt-summary />
+    <mt-card title="Mailserver (SMTP)" icon="mail">
+        <div class="mat-form__grid">
+            <mt-switch for="Input.Enabled" label="Mails verschicken" full="true" />
+            <mt-input for="Input.Host" label="Server" placeholder="smtp.example.com" />
+            <mt-input for="Input.Port" label="Port" type="number" min="1" max="65535" step="1" />
+            <mt-select for="Input.Security" label="Verschlüsselung" items="security" />
+            <mt-input for="Input.UserName" label="Benutzername" autocomplete="off" />
+            <mt-input for="Input.Password" label="Passwort" type="password" autocomplete="new-password" hint="@(Model.HasPassword ? "Gespeichert (verschlüsselt). Leer lassen, um es zu behalten." : "Wird verschlüsselt gespeichert.")" />
+            <mt-input for="Input.FromAddress" label="Absenderadresse" type="email" placeholder="service@example.com" />
+            <mt-input for="Input.FromName" label="Absendername" />
+            <mt-switch for="Input.NotifyAgents" label="Teams über neue und verschobene Tickets informieren" full="true" />
+        </div>
+        <p class="mat-hint">Kunden bekommen eine Bestätigung mit dem Link zu ihrem Ticket und jede Antwort. „Antwort an“ ist die Adresse der Abteilung, wenn sie eine hat.</p>
+    </mt-card>
+    <mt-buttons back-href="/Admin/System" back-text="Zum System" />
+</form>
+
+<form class="mat-form" method="post" asp-page-handler="Test" novalidate>
+    <mt-card title="Test" icon="send">
+        <div class="mat-form__grid">
+            <mt-input for="TestTo" label="Testnachricht an" type="email" />
+        </div>
+        <div class="mat-actions"><button type="submit" class="mat-btn mat-btn--secondary">@Ui.Icon("send")<span>Testnachricht senden</span></button></div>
+    </mt-card>
+</form>

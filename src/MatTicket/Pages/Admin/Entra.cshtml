@@ -1,0 +1,111 @@
+@page
+@model MatTicket.Pages.Admin.EntraModel
+@{
+    var roles = Controls.Options.Of<UserRole>(Labels.Of);
+    var s = Model.Settings;
+}
+
+<div class="mat-alert @(s.IsUsable ? "mat-alert--success" : s.Enabled ? "mat-alert--warning" : "mat-alert--info")">
+    @Ui.Icon(s.IsUsable ? "check-circle" : "info")
+    <div class="mat-alert__body">
+        @if (s.IsUsable)
+        {
+            <span>Aktiv: Die Anmeldeseite zeigt zuerst „Mit Microsoft anmelden“. @(Model.Groups.Count == 0 ? "Es ist noch keine Gruppe eingetragen – niemand kommt hinein." : $"{Model.Groups.Count} Gruppe(n) dürfen sich anmelden.")</span>
+        }
+        else if (s.Enabled)
+        {
+            <span>Eingeschaltet, aber unvollständig: Die Anmeldeseite bietet Microsoft erst an, wenn Tenant, Client und Geheimnis eingetragen sind.</span>
+        }
+        else
+        {
+            <span>Aus. Angemeldet wird mit E-Mail und Passwort.</span>
+        }
+    </div>
+</div>
+
+<mt-tabs id="entra-tabs" label="Bereiche der Anmeldung" selected="@Model.Tab">
+    <mt-tab id="setup" title="Einrichtung" icon="settings">
+        <form class="mat-form" method="post" asp-page-handler="" novalidate>
+            <mt-summary />
+            <mt-card title="App-Registrierung" icon="shield">
+                <div class="mat-form__grid">
+                    <mt-switch for="Input.Enabled" label="Anmeldung mit Microsoft einschalten" full="true" />
+                    <mt-input for="Input.TenantId" label="Tenant-ID (Verzeichnis-ID)" autocomplete="off" placeholder="00000000-0000-0000-0000-000000000000" />
+                    <mt-input for="Input.ClientId" label="Client-ID (Anwendungs-ID)" autocomplete="off" placeholder="00000000-0000-0000-0000-000000000000" />
+                    <mt-input for="Input.ClientSecret" label="Geheimer Clientschlüssel" type="password" autocomplete="off" full="true"
+                              hint="@(s.HasSecret ? "Ein Geheimnis ist gespeichert (verschlüsselt, nie wieder sichtbar). Leer lassen, um es zu behalten." : "Der Wert des Geheimnisses (nicht seine ID). Wird verschlüsselt gespeichert.")" />
+                    @if (s.HasSecret) { <mt-switch for="Input.RemoveSecret" label="Gespeichertes Geheimnis entfernen" full="true" /> }
+                    <mt-input for="Input.CallbackPath" label="Rückruf-Pfad" hint="Meist /signin-entra. Gilt ohne Neustart." />
+                    <div class="mat-field mat-field--full">
+                        <span class="mat-label">Umleitungs-URI für das Entra-Portal</span>
+                        <div class="mt-person"><code class="mat-mono">@Model.CallbackUrl</code> <button type="button" class="mat-btn mat-btn--ghost mat-btn--icon mat-btn--sm" data-copy="@Model.CallbackUrl" aria-label="Kopieren">@Ui.Icon("copy")</button></div>
+                        <span class="mat-hint">Hinter einem Reverse-Proxy mit HTTPS muss hier https:// stehen (öffentliche Adresse in der Konfiguration).</span>
+                    </div>
+                </div>
+            </mt-card>
+            <mt-buttons back-href="/Admin/Users" back-text="Zu den Benutzern" />
+        </form>
+    </mt-tab>
+
+    <mt-tab id="groups" title="Gruppen und Rollen" icon="users" count="@Model.Groups.Count">
+        <mt-card title="Wer sich anmelden darf" icon="users" sub="Nur Mitglieder eingetragener Gruppen kommen hinein. Wer in mehreren ist, bekommt die stärkste Rolle.">
+            @if (Model.Groups.Count == 0)
+            {
+                <p class="mat-muted">Noch keine Gruppe eingetragen.</p>
+            }
+            else
+            {
+                <div class="mat-table-wrap">
+                    <table class="mat-table" id="group-table">
+                        <caption class="mat-sr-only">Gruppen und ihre Rollen</caption>
+                        <thead><tr><th scope="col">Objekt-ID der Gruppe</th><th scope="col">Rolle</th><th scope="col" class="mat-hide-sm">Notiz</th><th scope="col"><span class="mat-sr-only">Aktionen</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var g in Model.Groups)
+                            {
+                                <tr>
+                                    <td data-label="Gruppe" class="mat-mono">@g.GroupObjectId</td>
+                                    <td data-label="Rolle">@Labels.Of(g.Role)</td>
+                                    <td data-label="Notiz" class="mat-hide-sm">@g.Note</td>
+                                    <td class="mat-table__cell-actions">
+                                        <form method="post" asp-page-handler="RemoveGroup" asp-route-id="@g.Id" class="mat-table__actions">
+                                            <button type="submit" class="mat-btn mat-btn--ghost mat-btn--icon mat-btn--sm" aria-label="Entfernen" data-tip="Entfernen" data-confirm="Diese Gruppe entfernen?" data-confirm-ok="Entfernen">@Ui.Icon("trash")</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </mt-card>
+        <form class="mat-form" method="post" asp-page-handler="AddGroup" novalidate>
+            <mt-card title="Gruppe eintragen" icon="plus">
+                <div class="mat-form__grid">
+                    <mt-input for="Group.ObjectId" label="Objekt-ID der Gruppe" autocomplete="off" placeholder="00000000-0000-0000-0000-000000000000" />
+                    <mt-select for="Group.Role" label="Rolle" items="roles" />
+                    <mt-input for="Group.Note" label="Notiz" full="true" hint="z. B. der Name der Gruppe in Entra." />
+                </div>
+            </mt-card>
+            <mt-buttons save-text="Eintragen" save-icon="plus" />
+        </form>
+    </mt-tab>
+
+    <mt-tab id="guide" title="Anleitung" icon="book">
+        <mt-card title="App-Registrierung im Entra-Portal" icon="book">
+            <ol class="mt-steps">
+                <li>Im <a href="https://entra.microsoft.com" target="_blank" rel="noopener noreferrer">Microsoft Entra Admin Center</a>: <strong>Anwendungen → App-Registrierungen → Neue Registrierung</strong>. Name: MatTicket; Kontotypen: „Nur Konten in diesem Organisationsverzeichnis“.</li>
+                <li>Umleitungs-URI: Plattform <strong>Web</strong>, Adresse <code class="mat-mono">@Model.CallbackUrl</code>.</li>
+                <li>Auf der Übersicht <strong>Anwendungs-ID (Client)</strong> und <strong>Verzeichnis-ID (Tenant)</strong> kopieren und hier eintragen.</li>
+                <li><strong>Zertifikate und Geheimnisse → Neuer geheimer Clientschlüssel</strong>; den <em>Wert</em> sofort kopieren (er wird nur einmal gezeigt) und hier eintragen. Ablaufdatum notieren.</li>
+                <li><strong>Tokenkonfiguration → Gruppenanspruch hinzufügen</strong>: „Sicherheitsgruppen“, bei vielen Gruppen besser „Der Anwendung zugewiesene Gruppen“. Typ: Gruppen-ID.</li>
+                <li><strong>API-Berechtigungen</strong>: Microsoft Graph, delegiert: <code>openid</code>, <code>profile</code>, <code>email</code> (Standard); Administratorzustimmung erteilen.</li>
+                <li>Die Objekt-IDs der Gruppen (Entra → Gruppen → Gruppe → Übersicht) unter „Gruppen und Rollen“ eintragen.</li>
+            </ol>
+            <p class="mat-hint">Fehler beim Anmelden werden auf der Anmeldeseite erklärt (z. B. falsche Umleitungs-URI, abgelaufenes Geheimnis). Eine falsche Einrichtung legt die App nie lahm: der Notzugang mit Passwort bleibt.</p>
+        </mt-card>
+    </mt-tab>
+</mt-tabs>
+
+@section Scripts {
+    <script src="~/js/admin.js" asp-append-version="true"></script>
+}

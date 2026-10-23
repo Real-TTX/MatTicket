@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 128" width="460" height="128">
+  <title>MatTicket</title>
+  <style>@media (prefers-color-scheme: dark) { .mt-dark { fill: #f5f4f1; } }</style>
+  <rect width="128" height="128" rx="28" fill="#a15c07"/>
+  <path fill="#ffffff" d="M25 36h78a7 7 0 0 1 7 7v11a10 10 0 0 0 0 20v11a7 7 0 0 1-7 7H25a7 7 0 0 1-7-7V74a10 10 0 0 0 0-20V43a7 7 0 0 1 7-7z"/>
+  <path fill="none" stroke="#a15c07" stroke-width="4.5" stroke-linecap="round" d="M84 44.5h.01M84 54h.01M84 63.5h.01M84 73h.01M84 82.5h.01"/>
+  <path fill="none" stroke="#a15c07" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" d="M40 65l10 10 19-20"/>
+  <text x="150" y="87" font-family="system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="62" font-weight="680" letter-spacing="-1"><tspan class="mt-dark" fill="#1c1917">Mat</tspan><tspan fill="#a15c07">Ticket</tspan></text>
+</svg>

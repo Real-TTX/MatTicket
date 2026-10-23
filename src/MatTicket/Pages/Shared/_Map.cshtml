@@ -1,0 +1,14 @@
+@model string
+@*
+    The map of an address (Google Maps without a key). Nothing is loaded from Google until the person asks for it: the button sets the
+    address of the frame (app.js), so a page with a customer on it does not tell Google about the visit.
+*@
+<mt-card title="Karte" icon="map-pin">
+    <div class="mt-map" data-map>
+        <p class="mat-muted">Die Karte kommt von Google Maps. Erst beim Öffnen wird die Adresse an Google übertragen.</p>
+        <div class="mat-btn-row mat-btn-row--plain">
+            <button type="button" class="mat-btn mat-btn--secondary" data-map-load="@Model">@Ui.Icon("map")<span>Karte laden</span></button>
+        </div>
+        <iframe class="mt-map__frame" title="Karte" data-map-frame hidden loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+</mt-card>

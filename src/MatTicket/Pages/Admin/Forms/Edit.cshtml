@@ -1,0 +1,115 @@
+@page
+@model MatTicket.Pages.Admin.Forms.EditModel
+@{
+    var f = Model.Form;
+}
+
+@if (f is not null)
+{
+    <div class="mat-actions">
+        <a class="mat-btn mat-btn--primary" href="/Admin/Forms/Designer?id=@f.Id">@Ui.Icon("workflow")<span>Designer öffnen</span></a>
+        <a class="mat-btn mat-btn--secondary" href="/@f.Slug?preview=1" target="_blank" rel="noopener">@Ui.Icon("eye")<span>Entwurf ansehen</span></a>
+        @if (f.State == FormState.Published)
+        {
+            <a class="mat-btn mat-btn--ghost" href="/@f.Slug" target="_blank" rel="noopener">@Ui.Icon("globe")<span>Veröffentlichte Fassung</span></a>
+        }
+    </div>
+}
+
+<form class="mat-form" method="post" asp-page-handler="" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-tabs id="form-tabs" label="Bereiche des Formulars">
+        <mt-tab id="settings" title="Einstellungen" icon="settings">
+            <mt-card title="Formular" icon="template">
+                <div class="mat-form__grid">
+                    <mt-input for="Input.Name" label="Name" required="true" />
+                    <mt-input for="Input.Slug" label="Adresse" hint="Das Formular steht unter /adresse. Kleinbuchstaben, Ziffern, Bindestriche. Leer: aus dem Namen." />
+                    <mt-textarea for="Input.Description" label="Beschreibung" rows="2" full="true" hint="Steht im Hilfe-Portal und in llms.txt." />
+                    <mt-switch for="Input.Indexable" label="Darf von Suchmaschinen gefunden werden (robots.txt, Sitemap, llms.txt)" full="true" />
+                </div>
+            </mt-card>
+            <mt-card title="Wohin die Tickets gehen" icon="route" sub="Der Ticket-Schritt im Designer und eine Kategorie-Frage haben Vorrang.">
+                <div class="mat-form__grid">
+                    <mt-picker for="Input.DepartmentId" label="Abteilung" items="Model.Departments" placeholder="Keine" />
+                    <mt-picker for="Input.TeamId" label="Team" items="Model.Teams" placeholder="Kein Team" />
+                    <mt-picker for="Input.CategoryId" label="Kategorie" items="Model.Categories" placeholder="Keine" />
+                </div>
+            </mt-card>
+            <mt-card title="KI bei neuen Tickets" icon="sparkles">
+                <div class="mat-form__grid">
+                    <mt-switch for="Input.AiTriage" label="Neue Tickets von der KI einordnen lassen (Kategorie, Priorität, Abteilung, Team – rückgängig machbar)" full="true" />
+                    <mt-switch for="Input.AiAutoReply" label="Automatische Erstantwort der KI (nur wenn sie sicher hilft, als KI-Antwort gekennzeichnet)" full="true" />
+                </div>
+            </mt-card>
+        </mt-tab>
+        @if (f is not null)
+        {
+            <mt-tab id="publish" title="Veröffentlichen" icon="globe">
+                <mt-card title="Prüfung des Entwurfs" icon="check-circle">
+                    @if (Model.Check!.Errors.Count == 0 && Model.Check.Warnings.Count == 0)
+                    {
+                        <p>@Ui.Pill("bereit", "ok", "check") Der Entwurf ist in Ordnung.</p>
+                    }
+                    @foreach (var e in Model.Check.Errors)
+                    {
+                        <div class="mat-alert mat-alert--danger">@Ui.Icon("x-circle")<div class="mat-alert__body">@e</div></div>
+                    }
+                    @foreach (var w in Model.Check.Warnings)
+                    {
+                        <div class="mat-alert mat-alert--warning">@Ui.Icon("alert")<div class="mat-alert__body">@w</div></div>
+                    }
+                    <dl class="mat-kv">
+                        <dt>Stand</dt><dd>@Labels.Pill(f.State)</dd>
+                        <dt>Veröffentlicht</dt><dd>@(f.PublishedVersion == 0 ? "noch nie" : $"Version {f.PublishedVersion}, {Fmt.Moment(f.PublishedDate)}")</dd>
+                        <dt>Adresse</dt><dd class="mat-mono">/@f.Slug</dd>
+                    </dl>
+                </mt-card>
+                <mt-card title="Neue Version" icon="globe">
+                    <div class="mat-form__grid">
+                        <mt-input for="Note" label="Notiz zur Version" full="true" placeholder="Was hat sich geändert?" />
+                    </div>
+                    <div class="mat-actions">
+                        <button type="submit" formaction="@Url.Page("/Admin/Forms/Edit", "Publish", new { id = f.Id })" formnovalidate class="mat-btn mat-btn--primary" disabled="@(!Model.Check.CanPublish)">@Ui.Icon("globe")<span>Entwurf veröffentlichen</span></button>
+                        @if (f.State == FormState.Published)
+                        {
+                            <button type="submit" formaction="@Url.Page("/Admin/Forms/Edit", "Unpublish", new { id = f.Id })" formnovalidate class="mat-btn mat-btn--ghost" data-confirm="Das Formular offline nehmen? Die Adresse zeigt dann nichts mehr." data-confirm-ok="Offline nehmen">@Ui.Icon("eye-off")<span>Offline nehmen</span></button>
+                        }
+                    </div>
+                </mt-card>
+            </mt-tab>
+            <mt-tab id="versions" title="Versionen" icon="history" count="@f.Versions.Count">
+                <mt-card title="Veröffentlichte Versionen" icon="history" sub="Eine Version ändert sich nie: die Antworten eines Tickets lassen sich immer gegen ihre Version lesen.">
+                    @if (f.Versions.Count == 0)
+                    {
+                        <p class="mat-muted">Noch nie veröffentlicht.</p>
+                    }
+                    else
+                    {
+                        <ul class="mt-notes">
+                            @foreach (var v in f.Versions)
+                            {
+                                <li class="mt-note">
+                                    <span class="mt-note__icon @(v.Version == f.PublishedVersion ? "mt-note__icon--ok" : "")">@Ui.Icon(v.Version == f.PublishedVersion ? "check-circle" : "history")</span>
+                                    <div class="mt-note__body">
+                                        <span class="mt-note__title">Version @v.Version @(v.Version == f.PublishedVersion ? "(aktuell)" : "")</span>
+                                        <span class="mt-note__meta">@Fmt.Moment(v.PublishedDate)@(string.IsNullOrEmpty(v.Note) ? "" : " · " + v.Note)</span>
+                                    </div>
+                                    <span class="mt-note__end">
+                                        <button type="submit" formaction="@Url.Page("/Admin/Forms/Edit", "Restore", new { id = f.Id, version = v.Version })" formnovalidate class="mat-btn mat-btn--ghost mat-btn--sm" data-confirm="Version @v.Version als Entwurf übernehmen? Der jetzige Entwurf wird ersetzt." data-confirm-ok="Übernehmen">@Ui.Icon("restore")<span>Als Entwurf</span></button>
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </mt-card>
+            </mt-tab>
+        }
+    </mt-tabs>
+    <mt-buttons back-href="/Admin/Forms" delete-url="@(f is null ? null : Url.Page("/Admin/Forms/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Dieses Formular löschen? Die Adresse zeigt dann nichts mehr; seine Tickets bleiben.">
+        @if (f is not null)
+        {
+            <button type="submit" formaction="@Url.Page("/Admin/Forms/Edit", "Copy", new { id = f.Id })" formnovalidate class="mat-btn mat-btn--secondary">@Ui.Icon("copy")<span>Kopieren</span></button>
+        }
+    </mt-buttons>
+</form>

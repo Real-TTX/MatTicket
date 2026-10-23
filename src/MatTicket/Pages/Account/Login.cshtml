@@ -1,0 +1,33 @@
+@page
+@model MatTicket.Pages.Account.LoginModel
+@{
+    Layout = "_Bare";
+}
+
+<div class="mat-auth__card">
+    <div class="mat-auth__brand">
+        @Ui.Logo("lg")
+        <h1>MatTicket</h1>
+        <p class="mat-muted">Anmelden</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Entra))
+    {
+        <div class="mat-alert mat-alert--danger" role="alert">@Ui.Icon("x-circle")<div class="mat-alert__body">@Model.Entra</div></div>
+    }
+
+    @if (Model.EntraAvailable)
+    {
+        <div class="mat-btn-row mat-btn-row--plain">
+            <a class="mat-btn mat-btn--primary mat-btn--block" href="/Account/Entra?returnUrl=@Uri.EscapeDataString(Model.ReturnUrl ?? "/")">@Ui.Icon("shield")<span>Mit Microsoft anmelden</span></a>
+        </div>
+        <details class="mt-details mt-auth-local" open="@Model.PasswordOpen">
+            <summary>Mit Passwort anmelden (Notzugang)</summary>
+            <partial name="_LoginForm" model="Model" />
+        </details>
+    }
+    else
+    {
+        <partial name="_LoginForm" model="Model" />
+    }
+</div>

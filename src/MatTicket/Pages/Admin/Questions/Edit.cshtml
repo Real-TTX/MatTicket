@@ -1,0 +1,20 @@
+@page
+@model MatTicket.Pages.Admin.Questions.EditModel
+
+<form class="mat-form" method="post" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <mt-card title="Frage" icon="list-checks">
+        <div class="mat-form__grid">
+            <mt-input for="Input.Label" label="Frage" required="true" full="true" />
+            <mt-select for="Input.Type" label="Art" items="Model.Types" />
+            <mt-input for="Input.Key" label="Schlüssel" hint="Unter diesem Namen wird die Antwort gespeichert (z. B. seriennummer). Leer: aus der Frage." />
+            <mt-textarea for="Input.Options" label="Auswahlmöglichkeiten" rows="5" full="true" show-if="Input.Type" show-value="select,radio,checkboxes" hint="Eine pro Zeile. Optional mit Schlüssel: wert|Beschriftung" />
+            <mt-input for="Input.Placeholder" label="Platzhalter" show-if="Input.Type" show-value="text,textarea,email,phone,number" />
+            <mt-textarea for="Input.Help" label="Hilfetext" rows="2" full="true" />
+            <mt-picker for="Input.CategoryId" label="Kategorie" items="Model.Categories" placeholder="Allgemein" hint="Nur zum Ordnen im Designer." />
+            <mt-switch for="Input.Required" label="Pflichtfeld" full="true" />
+        </div>
+    </mt-card>
+    <mt-buttons back-href="/Admin/Questions" delete-url="@(Model.Question is null ? null : Url.Page("/Admin/Questions/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Diese Frage aus dem Katalog löschen? Formulare behalten ihre Kopie." />
+</form>

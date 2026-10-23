@@ -1,0 +1,118 @@
+@page
+@model MatTicket.Pages.Admin.Sync.Tasks.EditModel
+@{
+    var targets = Controls.Options.Of<CrmEntity>(e => e == CrmEntity.Company ? "Firmen" : "Kontakte");
+    var t = Model.Task;
+    var columns = Model.Preview?.Columns ?? [];
+}
+
+<form class="mat-form" method="post" asp-page-handler="" novalidate>
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <mt-summary />
+    <datalist id="sync-columns">
+        @foreach (var c in columns) { <option value="@c"></option> }
+    </datalist>
+    <mt-tabs id="task-tabs" label="Bereiche der Sync-Aufgabe" selected="@Model.Tab">
+        <mt-tab id="query" title="Abfrage" icon="database">
+            <mt-card title="Quelle" icon="database">
+                <div class="mat-form__grid">
+                    <mt-input for="Input.Name" label="Name" required="true" />
+                    <mt-picker for="Input.DataConnectionId" label="Verbindung" items="Model.Connections" required="true" />
+                    <mt-radios for="Input.Target" label="Füllt" items="targets" full="true" hint="Wechselst du das Ziel, speichere einmal: dann zeigt die Zuordnung die passenden Felder." />
+                    <mt-textarea for="Input.Query" label="Abfrage (SELECT)" rows="8" full="true" class="mat-mono" spellcheck="false"
+                                 hint="Nur lesend, eine Anweisung. Beispiel: SELECT [No_] AS Nr, Name, Address AS Strasse, [Post Code] AS PLZ, City AS Ort FROM [CRONUS$Customer]" />
+                    <mt-input for="Input.KeyColumn" label="Schlüsselspalte" required="true" list="sync-columns" hint="Die Spalte, die einen Datensatz eindeutig macht (z. B. die Kundennummer)." />
+                    <mt-input for="Input.CompanyKeyColumn" label="Spalte mit dem Schlüssel der Firma" list="sync-columns" show-if="Input.Target" show-value="Contact"
+                              hint="Verknüpft den Kontakt mit der Firma, die eine Sync-Aufgabe mit diesem Schlüssel angelegt hat." />
+                </div>
+                <div class="mat-actions">
+                    <button type="submit" formaction="@Url.Page("/Admin/Sync/Tasks/Edit", "Preview", new { id = Model.Id })" formnovalidate class="mat-btn mat-btn--secondary">@Ui.Icon("eye")<span>Vorschau (10 Zeilen)</span></button>
+                </div>
+            </mt-card>
+            @if (Model.Preview is { } p)
+            {
+                <mt-card title="Vorschau" icon="table" sub="@(p.Error is null ? $"{p.Rows.Count} Zeilen, {p.Columns.Count} Spalten" : null)">
+                    @if (p.Error is not null)
+                    {
+                        <div class="mat-alert mat-alert--danger">@Ui.Icon("x-circle")<div class="mat-alert__body">@p.Error</div></div>
+                    }
+                    else
+                    {
+                        <div class="mat-table-wrap">
+                            <table class="mat-table" id="preview-table">
+                                <caption class="mat-sr-only">Vorschau der Abfrage</caption>
+                                <thead><tr>@foreach (var c in p.Columns) { <th scope="col">@c</th> }</tr></thead>
+                                <tbody>
+                                    @foreach (var row in p.Rows)
+                                    {
+                                        <tr>@for (var i = 0; i < row.Count; i++) { <td data-label="@p.Columns[i]">@row[i]</td> }</tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </mt-card>
+            }
+        </mt-tab>
+        <mt-tab id="mapping" title="Zuordnung" icon="shuffle">
+            <mt-card title="Welche Spalte füllt welches Feld" icon="shuffle" sub="Leer lassen, was nicht übernommen wird. Die Vorschau schlägt die Spalten vor.">
+                <div class="mat-form__grid">
+                    @foreach (var f in Model.Fields)
+                    {
+                        var id = "map-" + f.Key.Replace('.', '-');
+                        <div class="mat-field">
+                            <label class="mat-label" for="@id">@f.Label @if (f.Required) { <span class="mat-req" aria-hidden="true">*</span> }</label>
+                            <input class="mat-input" id="@id" name="Map[@f.Key]" value="@(Model.Map.TryGetValue(f.Key, out var col) ? col : "")" list="sync-columns" autocomplete="off" placeholder="Spalte" />
+                            <span class="mat-hint mat-mono">@f.Key</span>
+                        </div>
+                    }
+                </div>
+            </mt-card>
+        </mt-tab>
+        <mt-tab id="schedule" title="Zeitplan" icon="clock">
+            <mt-card title="Wann sie läuft" icon="clock">
+                <div class="mat-form__grid">
+                    <mt-input for="Input.IntervalMinutes" label="Alle … Minuten" type="number" min="0" step="5" hint="0: nur über „Jetzt ausführen“." />
+                    <mt-switch for="Input.IsEnabled" label="Eingeschaltet" full="true" />
+                    <mt-switch for="Input.DeleteMissing" label="Datensätze entfernen, die nicht mehr in der Quelle sind" full="true" />
+                </div>
+            </mt-card>
+        </mt-tab>
+        @if (t is not null)
+        {
+            <mt-tab id="runs" title="Läufe" icon="activity" count="@Model.Runs.Count">
+                <mt-card title="Letzte Läufe" icon="activity">
+                    @if (Model.Runs.Count == 0)
+                    {
+                        <p class="mat-muted">Die Aufgabe ist noch nie gelaufen.</p>
+                    }
+                    else
+                    {
+                        <div class="mat-table-wrap">
+                            <table class="mat-table" id="run-table">
+                                <caption class="mat-sr-only">Läufe der Aufgabe</caption>
+                                <thead><tr><th scope="col">Start</th><th scope="col">Ergebnis</th><th scope="col" class="mat-hide-sm">Art</th></tr></thead>
+                                <tbody>
+                                    @foreach (var r in Model.Runs)
+                                    {
+                                        <tr>
+                                            <td data-label="Start">@Fmt.Moment(r.StartDate)</td>
+                                            <td data-label="Ergebnis">@(r.Ok ? Ui.Pill("ok", "ok", "check") : Ui.Pill("Fehler", "error", "x-circle")) @r.Message</td>
+                                            <td data-label="Art" class="mat-hide-sm">@(r.Manual ? "von Hand" : "geplant")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </mt-card>
+            </mt-tab>
+        }
+    </mt-tabs>
+    <mt-buttons back-href="/Admin/Sync/Tasks" delete-url="@(t is null ? null : Url.Page("/Admin/Sync/Tasks/Edit", "Delete", new { id = Model.Id }))" delete-confirm="Diese Aufgabe löschen? Die übernommenen Datensätze bleiben.">
+        @if (t is not null)
+        {
+            <button type="submit" formaction="@Url.Page("/Admin/Sync/Tasks/Edit", "Run", new { id = Model.Id })" formnovalidate class="mat-btn mat-btn--secondary">@Ui.Icon("play")<span>Jetzt ausführen</span></button>
+        }
+    </mt-buttons>
+</form>

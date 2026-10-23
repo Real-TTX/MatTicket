@@ -1,0 +1,33 @@
+@page
+@model MatTicket.Pages.Tickets.CreateModel
+@{
+    var priorities = Controls.Options.Of<TicketPriority>(Labels.Of);
+}
+
+<form class="mat-form" method="post" novalidate>
+    <mt-summary />
+    <mt-card title="Anliegen" icon="ticket">
+        <div class="mat-form__grid">
+            <mt-input for="Input.Subject" label="Betreff" required="true" full="true" autocomplete="off" />
+            <mt-textarea for="Input.Description" label="Beschreibung" rows="6" full="true" />
+            <mt-radios for="Input.Priority" label="Priorität" items="priorities" full="true" />
+        </div>
+    </mt-card>
+    <mt-card title="Zuordnung" icon="route" sub="Leer lassen: Abteilung und Team kommen aus der Kategorie.">
+        <div class="mat-form__grid">
+            <mt-picker for="Input.CategoryId" label="Kategorie" items="Model.Categories" placeholder="Keine Kategorie" />
+            <mt-picker for="Input.DepartmentId" label="Abteilung" items="Model.Departments" placeholder="Aus der Kategorie" />
+            <mt-picker for="Input.TeamId" label="Team" items="Model.Teams" placeholder="Aus der Kategorie" />
+            <mt-picker for="Input.AssigneeUserId" label="Bearbeitet von" items="Model.Agents" placeholder="Niemand" />
+        </div>
+    </mt-card>
+    <mt-card title="Kunde" icon="user" sub="Ein Kontakt aus dem CRM füllt Name, E-Mail und Telefon.">
+        <div class="mat-form__grid">
+            <mt-picker for="Input.ContactId" label="Kontakt" items="Model.Contacts" placeholder="Kein Kontakt" full="true" />
+            <mt-input for="Input.RequesterName" label="Name" />
+            <mt-input for="Input.RequesterEmail" label="E-Mail-Adresse" type="email" inputmode="email" hint="Der Kunde bekommt Antworten per E-Mail." />
+            <mt-input for="Input.RequesterPhone" label="Telefon" type="tel" />
+        </div>
+    </mt-card>
+    <mt-buttons save-text="Ticket anlegen" save-icon="plus" back-href="/Tickets" />
+</form>

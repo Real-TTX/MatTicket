@@ -1,0 +1,31 @@
+@page "/hilfe"
+@model MatTicket.Pages.Portal.IndexModel
+@{
+    Layout = "_Public";
+}
+
+<h1>Wobei können wir helfen?</h1>
+@if (!string.IsNullOrWhiteSpace(Model.Site.PortalIntro))
+{
+    <p class="mat-muted">@Model.Site.PortalIntro</p>
+}
+
+@if (Model.Forms.Count == 0)
+{
+    <div class="mat-empty"><span class="mat-empty__icon">@Ui.Icon("template")</span><div class="mat-empty__title">Noch keine Formulare</div><p>Hier erscheinen die veröffentlichten Formulare.</p></div>
+}
+else
+{
+    <ul class="mat-itemlist mt-formlist">
+        @foreach (var f in Model.Forms)
+        {
+            <li class="mat-item">
+                <a class="mat-item__main" href="/@f.Slug">
+                    <span class="mat-item__lead">@Ui.Icon("help")</span>
+                    <span class="mat-item__body"><span class="mat-item__title">@f.Name</span><span class="mat-item__text">@f.Description</span></span>
+                    <span class="mat-item__end">@Ui.Icon("chevron-right", "mat-item__chevron")</span>
+                </a>
+            </li>
+        }
+    </ul>
+}

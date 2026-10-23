@@ -1,0 +1,200 @@
+@page "/{slug:regex(^[a-z0-9][a-z0-9-]{{0,59}}$)}"
+@model MatTicket.Pages.Portal.FormModel
+@using MatTicket.Core.Forms
+@{
+    Layout = "_Public";
+    var def = Model.Form.Definition;
+    var step = Model.Step;
+    var isStart = step.Id == def.Start && Model.Session.Path.Count == 0;
+    var categories = Model.Form.Categories;
+}
+
+@if (Model.Form.Preview)
+{
+    <div class="mat-alert mat-alert--info">@Ui.Icon("eye")<div class="mat-alert__body"><strong>Vorschau des Entwurfs.</strong> Es wird kein Ticket angelegt.</div></div>
+}
+
+<h1 class="mt-pf__formtitle">@(string.IsNullOrWhiteSpace(def.Title) ? Model.Form.Form.Name : def.Title)</h1>
+
+@if (Model.Finished)
+{
+    var done = Model.Ticket is not null ? def.Steps.FirstOrDefault(s => s.Id == Model.Session.Step) : step;
+    <div class="mat-card"><div class="mat-card__body mt-pf__done">
+        @Ui.Icon(Model.Ticket is null && step.Kind == StepKinds.End ? "check-circle" : "check-circle")
+        @if (Model.Ticket is { } t)
+        {
+            <h2 class="mt-pf__title">Ihre Anfrage ist angekommen</h2>
+            <div class="mt-richtext">@Html.Raw(done?.DoneHtml ?? "<p>Vielen Dank!</p>")</div>
+            <p>Ihre Ticketnummer: <strong class="mat-mono">@t.Number</strong></p>
+            <p>Den Stand sehen und antworten können Sie jederzeit hier:</p>
+            <a class="mat-btn mat-btn--primary" href="/t/@t.Token.ToString("N")">@Ui.Icon("ticket")<span>Zu meinem Ticket</span></a>
+            <p class="mat-hint">Speichern Sie sich diesen Link. @(string.IsNullOrEmpty(t.RequesterEmail) ? "" : "Wir haben ihn Ihnen auch per E-Mail geschickt.")</p>
+        }
+        else if (Model.Message is not null)
+        {
+            <h2 class="mt-pf__title">@step.Title</h2>
+            <p>@Model.Message</p>
+        }
+        else
+        {
+            <h2 class="mt-pf__title">@step.Title</h2>
+            <div class="mt-richtext">@Html.Raw(step.DoneHtml ?? "<p>Vielen Dank!</p>")</div>
+        }
+        <a class="mat-btn mat-btn--ghost" href="/@Model.Slug@(Model.Form.Preview ? "?preview=1" : "")">@Ui.Icon("refresh")<span>Neu beginnen</span></a>
+    </div></div>
+    return;
+}
+
+<div class="mt-pf__progress" aria-hidden="true">
+    @for (var i = 0; i < Math.Max(3, Model.Done + 2); i++)
+    {
+        <span class="@(i <= Model.Done ? "is-done" : "")"></span>
+    }
+</div>
+
+@if (isStart && !string.IsNullOrWhiteSpace(def.Intro))
+{
+    <div class="mt-richtext mat-muted">@Html.Raw(def.Intro)</div>
+}
+
+@if (Model.Message is not null)
+{
+    <div class="mat-alert mat-alert--warning" role="alert">@Ui.Icon("alert")<div class="mat-alert__body">@Model.Message</div></div>
+}
+
+<form class="mat-form mt-pf" method="post" action="/@Model.Slug@(Model.Form.Preview ? "?preview=1" : "")" asp-antiforgery="true" novalidate data-public-form>
+    <input type="hidden" name="State" value="@Model.Token" data-form-state />
+    <div class="mt-hp" aria-hidden="true"><label for="website">Website</label><input id="website" name="Website" tabindex="-1" autocomplete="off" /></div>
+    <h2 class="mt-pf__title">@step.Title</h2>
+
+    @if (Model.Errors.Count > 0 && Model.Errors.Keys.Any(k => k.Length > 0))
+    {
+        <div class="mat-alert mat-alert--danger" role="alert" data-validation-summary>@Ui.Icon("x-circle")<div class="mat-alert__body"><strong>Bitte prüfen Sie Ihre Angaben.</strong></div></div>
+    }
+
+    <div class="mat-form__grid">
+        @foreach (var b in step.Blocks)
+        {
+            var name = b.Key is null ? "" : FormEngine.InputName(b);
+            var id = "f-" + b.Id;
+            var value = Model.ValueOf(b);
+            var error = Model.Errors.TryGetValue(name, out var e) ? e : null;
+            var full = b.Width != "half" || b.Type is BlockTypes.Radio or BlockTypes.Checkboxes or BlockTypes.YesNo or BlockTypes.Textarea or BlockTypes.Consent;
+            var cls = "mat-field" + (full ? " mat-field--full" : "") + (error is null ? "" : " is-invalid");
+            switch (b.Type)
+            {
+                case BlockTypes.RichText:
+                    <div class="mt-richtext mat-field--full">@Html.Raw(b.Html)</div>
+                    break;
+                case BlockTypes.Divider:
+                    <hr class="mt-pf__divider mat-field--full" />
+                    break;
+                case BlockTypes.Radio:
+                case BlockTypes.YesNo:
+                case BlockTypes.Checkboxes:
+                    var multi = b.Type == BlockTypes.Checkboxes;
+                    var chosen = value.Split(FormEngine.Separator);
+                    <fieldset class="@cls mat-fieldset" aria-describedby="@id-error">
+                        <legend class="mat-label">@b.Label @if (b.Required) { <span class="mat-req" aria-hidden="true">*</span> }</legend>
+                        <div class="mat-options">
+                            @{ var n = 0; }
+                            @foreach (var o in FormEngine.OptionsOf(b, categories))
+                            {
+                                <label class="mat-option"><input type="@(multi ? "checkbox" : "radio")" id="@id-@(n++)" name="@name" value="@o.Value" checked="@chosen.Contains(o.Value)" required="@(b.Required && !multi)" /><span>@o.Label</span></label>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(b.Help)) { <span class="mat-hint">@b.Help</span> }
+                        <span class="mat-error" id="@id-error" aria-live="polite">@error</span>
+                    </fieldset>
+                    break;
+                case BlockTypes.Consent:
+                    <div class="@cls">
+                        <label class="mat-check"><input type="checkbox" id="@id" name="@name" value="ja" checked="@(value == "ja")" required="@b.Required" aria-describedby="@id-error" /><span class="mat-check__text">@b.Label @if (b.Required) { <span class="mat-req" aria-hidden="true">*</span> }</span></label>
+                        @if (!string.IsNullOrEmpty(b.Help)) { <span class="mat-hint">@b.Help</span> }
+                        <span class="mat-error" id="@id-error" aria-live="polite">@error</span>
+                    </div>
+                    break;
+                case BlockTypes.Select:
+                case BlockTypes.Category:
+                    <div class="@cls">
+                        <label class="mat-label" for="@id">@b.Label @if (b.Required) { <span class="mat-req" aria-hidden="true">*</span> }</label>
+                        <select class="mat-select" id="@id" name="@name" required="@b.Required" aria-describedby="@id-error">
+                            <option value="">Bitte wählen</option>
+                            @foreach (var o in FormEngine.OptionsOf(b, categories))
+                            {
+                                <option value="@o.Value" selected="@(o.Value == value)">@o.Label</option>
+                            }
+                        </select>
+                        @if (!string.IsNullOrEmpty(b.Help)) { <span class="mat-hint">@b.Help</span> }
+                        <span class="mat-error" id="@id-error" aria-live="polite">@error</span>
+                    </div>
+                    break;
+                case BlockTypes.Textarea:
+                    <div class="@cls">
+                        <label class="mat-label" for="@id">@b.Label @if (b.Required) { <span class="mat-req" aria-hidden="true">*</span> }</label>
+                        <textarea class="mat-textarea" id="@id" name="@name" rows="5" placeholder="@b.Placeholder" required="@b.Required" aria-describedby="@id-error" maxlength="8000">@value</textarea>
+                        @if (!string.IsNullOrEmpty(b.Help)) { <span class="mat-hint">@b.Help</span> }
+                        <span class="mat-error" id="@id-error" aria-live="polite">@error</span>
+                    </div>
+                    break;
+                case BlockTypes.Date:
+                    <div class="@cls">
+                        <label class="mat-label" for="@id">@b.Label @if (b.Required) { <span class="mat-req" aria-hidden="true">*</span> }</label>
+                        <div class="mat-picker" data-picker="date" data-clearable>
+                            <input class="mat-picker__input" id="@id" name="@name" value="@value" required="@b.Required" aria-describedby="@id-error" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(b.Help)) { <span class="mat-hint">@b.Help</span> }
+                        <span class="mat-error" id="@id-error" aria-live="polite">@error</span>
+                    </div>
+                    break;
+                default:
+                    var (type, auto, mode) = b.Type switch
+                    {
+                        BlockTypes.Email => ("email", "email", "email"),
+                        BlockTypes.Phone => ("tel", "tel", "tel"),
+                        BlockTypes.Number => ("text", "off", "decimal"),
+                        _ => ("text", b.MapTo switch { "requester.name" => "name", "requester.company" => "organization", _ => "off" }, "text"),
+                    };
+                    <div class="@cls">
+                        <label class="mat-label" for="@id">@b.Label @if (b.Required) { <span class="mat-req" aria-hidden="true">*</span> }</label>
+                        <input class="mat-input" type="@type" id="@id" name="@name" value="@value" placeholder="@b.Placeholder" autocomplete="@auto" inputmode="@mode" required="@b.Required" aria-describedby="@id-error" maxlength="500" />
+                        @if (!string.IsNullOrEmpty(b.Help)) { <span class="mat-hint">@b.Help</span> }
+                        <span class="mat-error" id="@id-error" aria-live="polite">@error</span>
+                    </div>
+                    break;
+            }
+        }
+    </div>
+
+    @if (step.Kind == StepKinds.Ai)
+    {
+        <div class="mat-alert mat-alert--info mt-pf__ai @(Model.Session.AiHtml is null ? "is-busy" : "")" data-assist="/@Model.Slug?handler=Assist@(Model.Form.Preview ? "&preview=1" : "")" aria-live="polite">
+            @Ui.Icon("sparkles")
+            <div class="mat-alert__body mt-richtext" data-assist-body>@if (Model.Session.AiHtml is { } html) { @Html.Raw(html) } else { <span>Unser Assistent sieht sich Ihre Angaben an …</span> }</div>
+        </div>
+        <p class="mat-hint">Die Antwort schreibt eine KI. Sie kann sich irren; im Zweifel hilft Ihnen unser Team.</p>
+        <div class="mat-btn-row">
+            <button type="submit" name="action" value="helped" class="mat-btn mat-btn--primary" data-assist-done disabled="@(Model.Session.AiHtml is null)">@Ui.Icon("check")<span>@(step.HelpedText ?? "Das hat geholfen")</span></button>
+            <button type="submit" name="action" value="open" class="mat-btn mat-btn--secondary" formnovalidate>@Ui.Icon("ticket")<span>@(step.NotHelpedText ?? "Weiter zum Ticket")</span></button>
+            @if (Model.Session.Path.Count > 0)
+            {
+                <span class="mat-btn-row__spacer"></span>
+                <button type="submit" name="action" value="back" class="mat-btn mat-btn--ghost" formnovalidate>@Ui.Icon("back")<span>Zurück</span></button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="mat-btn-row">
+            <button type="submit" name="action" value="next" class="mat-btn mat-btn--primary">@Ui.Icon(step.Kind == StepKinds.Ticket ? "send" : "arrow-right")<span>@(step.ButtonText ?? (step.Kind == StepKinds.Ticket ? "Absenden" : "Weiter"))</span></button>
+            @if (Model.Session.Path.Count > 0)
+            {
+                <button type="submit" name="action" value="back" class="mat-btn mat-btn--secondary" formnovalidate>@Ui.Icon("back")<span>Zurück</span></button>
+            }
+        </div>
+    }
+</form>
+
+@section Scripts {
+    <script src="~/js/portal.js" asp-append-version="true"></script>
+}

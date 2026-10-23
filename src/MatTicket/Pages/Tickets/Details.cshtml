@@ -1,0 +1,301 @@
+@page
+@model MatTicket.Pages.Tickets.DetailsModel
+@{
+    var t = Model.Ticket;
+    var statuses = Controls.Options.Of<TicketStatus>(Labels.Of);
+    var priorities = Controls.Options.Of<TicketPriority>(Labels.Of);
+    var afterOptions = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
+    {
+        new("Status beibehalten", ""),
+        new("Wartet auf Kunde", nameof(TicketStatus.Waiting)),
+        new("Gelöst", nameof(TicketStatus.Resolved)),
+        new("Geschlossen", nameof(TicketStatus.Closed)),
+    };
+    var now = DateTime.UtcNow;
+    var tab = Model.Tab ?? "verlauf";
+    var visibleMessages = t.Messages.OrderBy(m => m.CreateDate).ToList();
+}
+
+<div class="mat-page__head">
+    <div class="mat-page__title">
+        <h1>@t.Subject</h1>
+        <p class="mat-page__sub mt-chips">
+            <span class="mat-mono">@t.Number</span>
+            @Labels.Pill(t.Status)
+            @Labels.Pill(t.Priority)
+            @if (t.Category is not null) { @Ui.Pill(t.Category.Parent is null ? t.Category.Name : $"{t.Category.Parent.Name} › {t.Category.Name}", "plain", "tag") }
+            <span class="mat-muted">@Labels.Of(t.Source) · @Fmt.Moment(t.CreateDate)</span>
+        </p>
+    </div>
+</div>
+
+<div class="mt-split">
+    <div class="mat-stack">
+        <mt-tabs id="ticket-tabs" label="Bereiche des Tickets" selected="@tab">
+            <mt-tab id="verlauf" title="Verlauf" icon="message-square" count="@visibleMessages.Count(m => m.Kind != MessageKind.System)">
+                <ol class="mt-thread" aria-label="Verlauf des Tickets">
+                    <li class="mt-msg mt-msg--customer">
+                        <div class="mt-msg__head">
+                            @Ui.Avatar(t.RequesterName, "sm")
+                            <strong>@(string.IsNullOrWhiteSpace(t.RequesterName) ? "Kunde" : t.RequesterName)</strong>
+                            @Ui.Pill("Anfrage", "info")
+                            <span class="mt-msg__time" title="@Fmt.Moment(t.CreateDate)">@Fmt.Ago(t.CreateDate, now)</span>
+                        </div>
+                        <div class="mt-msg__body mt-richtext">@Html.Raw(t.Description)</div>
+                    </li>
+                    @foreach (var m in visibleMessages)
+                    {
+                        if (m.Kind == MessageKind.System)
+                        {
+                            <li class="mt-msg mt-msg--system">
+                                @Ui.Icon("history")
+                                <div class="mt-msg__body mt-richtext">@Html.Raw(m.Body)</div>
+                                <span class="mt-msg__time" title="@Fmt.Moment(m.CreateDate)">@Fmt.Ago(m.CreateDate, now)</span>
+                            </li>
+                            continue;
+                        }
+
+                        var kindClass = m.Kind switch { MessageKind.Customer => "customer", MessageKind.Note => "note", MessageKind.Ai => "ai", _ => "reply" };
+                        <li class="mt-msg mt-msg--@kindClass">
+                            <div class="mt-msg__head">
+                                @if (m.Kind == MessageKind.Ai) { <span class="mat-avatar mat-avatar--sm" aria-hidden="true">@Ui.Icon("bot")</span> } else { @Ui.Avatar(m.AuthorName, "sm") }
+                                <strong>@m.AuthorName</strong>
+                                @switch (m.Kind)
+                                {
+                                    case MessageKind.Note: @Ui.Pill("Interne Notiz", "warn", "lock") break;
+                                    case MessageKind.Ai: @Ui.Pill("KI-Antwort", "accent", "sparkles") break;
+                                    case MessageKind.Customer: @Ui.Pill("Kunde", "info") break;
+                                    default: @Ui.Pill("Antwort", "ok", "send") break;
+                                }
+                                <span class="mt-msg__time" title="@Fmt.Moment(m.CreateDate)">@Fmt.Ago(m.CreateDate, now)</span>
+                            </div>
+                            <div class="mt-msg__body mt-richtext">@Html.Raw(m.Body)</div>
+                        </li>
+                    }
+                </ol>
+
+                @if (t.Status != TicketStatus.Closed)
+                {
+                    <form class="mat-form mt-composer" method="post" asp-page-handler="Reply" asp-route-id="@t.Id" novalidate data-composer>
+                        <input type="hidden" name="AiRunId" value="" data-ai-run />
+                        <fieldset class="mat-field mat-fieldset">
+                            <legend class="mat-sr-only">Art der Nachricht</legend>
+                            <div class="mat-seg" role="group" aria-label="Art der Nachricht">
+                                <label class="mat-seg__btn"><input type="radio" name="Kind" value="reply" checked class="mat-sr-only" data-composer-kind />@Ui.Icon("send")<span>Antwort an Kunde</span></label>
+                                <label class="mat-seg__btn"><input type="radio" name="Kind" value="note" class="mat-sr-only" data-composer-kind />@Ui.Icon("lock")<span>Interne Notiz</span></label>
+                            </div>
+                        </fieldset>
+                        <div class="mat-field">
+                            <label class="mat-label" for="reply-body">Nachricht</label>
+                            <div class="mt-rte" data-rte>
+                                <input type="hidden" name="Body" id="reply-body-value" data-rte-value />
+                                <div class="mt-rte__area mt-richtext" id="reply-body" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Nachricht" data-rte-area data-placeholder="Antwort schreiben …"></div>
+                            </div>
+                            @if (string.IsNullOrEmpty(t.RequesterEmail))
+                            {
+                                <span class="mat-hint">Zu diesem Ticket gibt es keine E-Mail-Adresse: der Kunde sieht Antworten nur über den Link seines Tickets.</span>
+                            }
+                        </div>
+                        <div class="mat-alert mat-alert--info" data-ai-note hidden>@Ui.Icon("sparkles")<div class="mat-alert__body" data-ai-note-text></div></div>
+                        <div class="mat-form__grid">
+                            <mt-select name="StatusAfter" id="status-after" label="Danach" items="afterOptions" />
+                        </div>
+                        <div class="mat-btn-row">
+                            <button type="submit" class="mat-btn mat-btn--primary">@Ui.Icon("send")<span>Senden</span></button>
+                            @if (Model.AiAvailable)
+                            {
+                                <button type="button" class="mat-btn mat-btn--secondary" data-ai-reply="/api/tickets/@t.Id/ai/reply">@Ui.Icon("sparkles")<span>KI-Vorschlag</span></button>
+                                <button type="button" class="mat-btn mat-btn--ghost" data-ai-instruction="/api/tickets/@t.Id/ai/instruction?action=Reply">@Ui.Icon("eye")<span>Vollständige Anweisung anzeigen</span></button>
+                            }
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <div class="mat-alert mat-alert--info">@Ui.Icon("archive")<div class="mat-alert__body">Das Ticket ist geschlossen. Stelle den Status um, um wieder zu antworten.</div></div>
+                }
+            </mt-tab>
+
+            <mt-tab id="angaben" title="Angaben" icon="list" count="@Model.Answers.Count">
+                <mt-card title="Angaben im Formular" icon="template" sub="@(t.TicketForm is null ? null : $"{t.TicketForm.Name}, Version {t.FormVersion}")">
+                    @if (Model.Answers.Count == 0)
+                    {
+                        <p class="mat-muted">Dieses Ticket hat keine Formularangaben.</p>
+                    }
+                    else
+                    {
+                        <dl class="mat-kv">
+                            @foreach (var a in Model.Answers)
+                            {
+                                <dt>@a.Label</dt><dd class="mt-prewrap">@a.Value</dd>
+                            }
+                        </dl>
+                    }
+                </mt-card>
+                <mt-card title="Anfragender" icon="user">
+                    <dl class="mat-kv">
+                        <dt>Name</dt><dd>@(string.IsNullOrWhiteSpace(t.RequesterName) ? "–" : t.RequesterName)</dd>
+                        <dt>E-Mail</dt><dd>@if (string.IsNullOrWhiteSpace(t.RequesterEmail)) { <span>–</span> } else { <a href="mailto:@t.RequesterEmail">@t.RequesterEmail</a> }</dd>
+                        <dt>Telefon</dt><dd>@if (string.IsNullOrWhiteSpace(t.RequesterPhone)) { <span>–</span> } else { <a href="tel:@t.RequesterPhone">@t.RequesterPhone</a> }</dd>
+                        <dt>Firma</dt><dd>@(t.RequesterCompany ?? "–")</dd>
+                        <dt>Statusseite</dt><dd><a href="/t/@t.Token.ToString("N")" target="_blank" rel="noopener">So sieht der Kunde das Ticket</a></dd>
+                    </dl>
+                </mt-card>
+            </mt-tab>
+
+            <mt-tab id="kunde" title="Kunde" icon="building">
+                @if (t.Contact is { } c)
+                {
+                    <mt-card title="@c.FullName" icon="user" sub="@c.Position">
+                        <dl class="mat-kv">
+                            <dt>E-Mail</dt><dd>@(c.Email ?? "–")</dd>
+                            <dt>Telefon</dt><dd>@(c.Phone ?? c.Mobile ?? "–")</dd>
+                            <dt>Adresse</dt><dd>@(CrmLogic.ValueOf(c, "Address") is { Length: > 0 } address ? address : "–")</dd>
+                        </dl>
+                        <div class="mat-actions">
+                            <a class="mat-btn mat-btn--secondary" href="/Crm/Contacts/Edit?id=@c.Id">@Ui.Icon("user")<span>Kontakt öffnen</span></a>
+                            @foreach (var b in Model.ContactButtons)
+                            {
+                                <a class="mat-btn mat-btn--ghost" href="@b.Url" target="@(b.NewWindow ? "_blank" : null)" rel="noopener noreferrer">@Ui.Icon(b.Icon)<span>@b.Label</span></a>
+                            }
+                        </div>
+                    </mt-card>
+                }
+                @if (t.Company is { } co)
+                {
+                    <mt-card title="@co.Name" icon="building" sub="@(co.CustomerNumber is null ? null : "Kundennummer " + co.CustomerNumber)">
+                        <dl class="mat-kv">
+                            <dt>Adresse</dt><dd>@(CrmLogic.ValueOf(co, "Address") is { Length: > 0 } address ? address : "–")</dd>
+                            <dt>Telefon</dt><dd>@(co.Phone ?? "–")</dd>
+                        </dl>
+                        <div class="mat-actions">
+                            <a class="mat-btn mat-btn--secondary" href="/Crm/Companies/Edit?id=@co.Id">@Ui.Icon("building")<span>Firma öffnen</span></a>
+                            @foreach (var b in Model.CompanyButtons)
+                            {
+                                <a class="mat-btn mat-btn--ghost" href="@b.Url" target="@(b.NewWindow ? "_blank" : null)" rel="noopener noreferrer">@Ui.Icon(b.Icon)<span>@b.Label</span></a>
+                            }
+                        </div>
+                    </mt-card>
+                }
+                @if (Model.MapUrl is not null)
+                {
+                    <partial name="_Map" model="Model.MapUrl" />
+                }
+                <mt-card title="@(t.ContactId is null ? "Mit einem Kontakt verknüpfen" : "Anderen Kontakt verknüpfen")" icon="link">
+                    @if (Model.Suggestions.Count > 0)
+                    {
+                        <p class="mat-muted">Passt vielleicht:</p>
+                        <ul class="mt-suggest">
+                            @foreach (var s in Model.Suggestions)
+                            {
+                                <li>
+                                    <form method="post" asp-page-handler="LinkContact" asp-route-id="@t.Id" class="mt-inline-form">
+                                        <input type="hidden" name="ContactId" value="@s.Id" />
+                                        <button type="submit" class="mat-btn mat-btn--ghost mat-btn--sm">@Ui.Icon("link")<span>@s.Name</span></button>
+                                    </form>
+                                    <small class="mat-muted">@s.Detail</small>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    <form class="mat-form" method="post" asp-page-handler="LinkContact" asp-route-id="@t.Id" novalidate>
+                        <div class="mat-form__grid">
+                            <mt-picker name="ContactId" id="link-contact" label="Kontakt" items="Model.Contacts" placeholder="Kein Kontakt" full="true" />
+                        </div>
+                        <div class="mat-btn-row"><button type="submit" class="mat-btn mat-btn--secondary">@Ui.Icon("link")<span>Verknüpfen</span></button></div>
+                    </form>
+                </mt-card>
+            </mt-tab>
+        </mt-tabs>
+    </div>
+
+    <aside class="mat-stack" aria-label="Eigenschaften des Tickets">
+        <mt-card title="Eigenschaften" icon="sliders">
+            <form class="mat-form" method="post" asp-page-handler="Properties" asp-route-id="@t.Id" novalidate>
+                <mt-select for="Status" id="prop-status" label="Status" items="statuses" />
+                <mt-select for="Priority" id="prop-priority" label="Priorität" items="priorities" />
+                <mt-picker name="CategoryId" id="prop-category" label="Kategorie" items="Model.Categories" value="@t.CategoryId" placeholder="Keine" />
+                <mt-picker name="DepartmentId" id="prop-department" label="Abteilung" items="Model.Departments" value="@t.DepartmentId" placeholder="Keine" />
+                <mt-picker name="TeamId" id="prop-team" label="Team" items="Model.Teams" value="@t.TeamId" placeholder="Kein Team" />
+                <mt-picker name="AssigneeUserId" id="prop-assignee" label="Bearbeitet von" items="Model.Agents" value="@t.AssigneeUserId" placeholder="Niemand" />
+                <mt-input name="DueDate" id="prop-due" label="Fällig am" type="date" value="@(t.DueDate is { } due ? Fmt.Local(due).ToString("yyyy-MM-dd") : "")" />
+                <div class="mat-btn-row mat-btn-row--plain">
+                    <button type="submit" class="mat-btn mat-btn--primary">@Ui.Icon("save")<span>Speichern</span></button>
+                </div>
+            </form>
+        </mt-card>
+
+        <mt-card title="Aktionen" icon="zap">
+            <div class="mt-actions-col">
+                @if (t.AssigneeUserId != ViewContext.HttpContext.RequestServices.GetRequiredService<ICurrentUser>().UserId)
+                {
+                    <form method="post" asp-page-handler="Take" asp-route-id="@t.Id">
+                        <button type="submit" class="mat-btn mat-btn--secondary mat-btn--block">@Ui.Icon("user")<span>Übernehmen</span></button>
+                    </form>
+                }
+                <button type="button" class="mat-btn mat-btn--secondary mat-btn--block" data-dialog-open="move-dialog" aria-haspopup="dialog">@Ui.Icon("move")<span>Verschieben</span></button>
+                @if (Model.AiAvailable)
+                {
+                    <form method="post" asp-page-handler="Triage" asp-route-id="@t.Id">
+                        <button type="submit" class="mat-btn mat-btn--ghost mat-btn--block">@Ui.Icon("sparkles")<span>Von der KI einordnen lassen</span></button>
+                    </form>
+                }
+            </div>
+        </mt-card>
+
+        <mt-card title="Zeiten" icon="clock">
+            <dl class="mat-kv">
+                <dt>Erstellt</dt><dd>@Fmt.Moment(t.CreateDate)</dd>
+                <dt>Erste Antwort</dt><dd>@(t.FirstResponseDate is null ? "noch keine" : Fmt.Moment(t.FirstResponseDate))</dd>
+                <dt>Letzte Aktivität</dt><dd>@Fmt.Moment(t.LastActivityDate)</dd>
+                @if (t.ResolvedDate is not null) { <dt>Gelöst</dt><dd>@Fmt.Moment(t.ResolvedDate)</dd> }
+            </dl>
+        </mt-card>
+
+        @if (User.IsInRole(nameof(UserRole.Admin)))
+        {
+            <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" class="mat-btn-row mat-btn-row--plain">
+                <span class="mat-btn-row__spacer"></span>
+                <button type="submit" class="mat-btn mat-btn--danger" data-confirm="Dieses Ticket löschen? Es verschwindet aus allen Listen." data-confirm-ok="Löschen">@Ui.Icon("trash")<span>Ticket löschen</span></button>
+            </form>
+        }
+    </aside>
+</div>
+
+<dialog class="mat-dialog mat-dialog--sm" id="move-dialog" aria-labelledby="move-dialog-title">
+    <form class="mat-dialog__form mat-form" method="post" asp-page-handler="Move" asp-route-id="@t.Id" novalidate>
+        <div class="mat-dialog__head">
+            @Ui.Icon("move")
+            <h2 class="mat-dialog__title" id="move-dialog-title">Ticket verschieben</h2>
+            <button type="button" class="mat-btn mat-btn--ghost mat-btn--icon mat-dialog__close" data-dialog-close aria-label="Schließen">@Ui.Icon("x")</button>
+        </div>
+        <div class="mat-dialog__body">
+            <mt-picker name="DepartmentId" id="move-department" label="In die Abteilung" items="Model.Departments" placeholder="Keine Abteilung" />
+            <mt-picker name="TeamId" id="move-team" label="An das Team" items="Model.Teams" placeholder="Kein bestimmtes Team" hint="Ein Team bestimmt auch die Abteilung." />
+            <mt-textarea name="Note" id="move-note" label="Notiz für das neue Team" rows="3" />
+        </div>
+        <div class="mat-dialog__foot">
+            <div class="mat-btn-row mat-btn-row--plain">
+                <button type="submit" class="mat-btn mat-btn--primary">@Ui.Icon("move")<span>Verschieben</span></button>
+                <button type="button" class="mat-btn mat-btn--secondary" data-dialog-close>Abbrechen</button>
+            </div>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="mat-dialog mat-dialog--lg" id="instruction-dialog" aria-labelledby="instruction-dialog-title">
+    <div class="mat-dialog__form">
+        <div class="mat-dialog__head">
+            @Ui.Icon("eye")
+            <h2 class="mat-dialog__title" id="instruction-dialog-title">Vollständige Anweisung an die KI</h2>
+            <button type="button" class="mat-btn mat-btn--ghost mat-btn--icon mat-dialog__close" data-dialog-close aria-label="Schließen">@Ui.Icon("x")</button>
+        </div>
+        <div class="mat-dialog__body">
+            <p class="mat-muted">Genau dieser Text geht an das Modell: Vorgabe des Betreibers, Grundanweisung, fester Teil und die Lage dieses Tickets.</p>
+            <pre class="mt-code mt-code--wrap" data-instruction-text></pre>
+        </div>
+        <div class="mat-dialog__foot">
+            <div class="mat-btn-row mat-btn-row--plain"><button type="button" class="mat-btn mat-btn--secondary" data-dialog-close>Schließen</button></div>
+        </div>
+    </div>
+</dialog>

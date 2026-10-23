@@ -1,0 +1,106 @@
+@page
+@model MatTicket.Pages.IndexModel
+@{
+    var o = Model.Overview;
+    var now = DateTime.UtcNow;
+    var max = Math.Max(1, o.CreatedLast14Days.DefaultIfEmpty(0).Max());
+    var maxDept = Math.Max(1, o.ByDepartment.Select(d => d.Count).DefaultIfEmpty(0).Max());
+    var today = Fmt.Local(now).Date;
+}
+
+<div class="mat-grid mt-stats">
+    @Ui.Kpi("Offen", Fmt.Integer(o.Open), "alle offenen Tickets", "inbox", href: "/Tickets?scope=aktiv")
+    @Ui.Kpi("Neu", Fmt.Integer(o.New), o.New > 0 ? "noch nicht angefasst" : "nichts Neues", "bell", href: "/Tickets?scope=neu", bad: o.New > 5)
+    @Ui.Kpi("Meine", Fmt.Integer(o.Mine), "mir zugewiesen", "user", href: "/Tickets/Mine")
+    @Ui.Kpi("Ohne Bearbeiter", Fmt.Integer(o.Unassigned), "noch niemandem zugewiesen", "users", href: "/Tickets?scope=aktiv&bearbeiter=niemand", bad: o.Unassigned > 10)
+    @Ui.Kpi("Gelöst (7 Tage)", Fmt.Integer(o.ResolvedThisWeek), $"{o.Waiting} warten auf Kunden", "check-circle", href: "/Tickets?scope=erledigt")
+</div>
+
+<div class="mt-split mt-split--half">
+    <mt-card title="Neue Tickets der letzten 14 Tage" icon="bar-chart">
+        <div class="mt-bars" role="img" aria-label="Neue Tickets pro Tag in den letzten 14 Tagen">
+            @for (var i = 0; i < o.CreatedLast14Days.Count; i++)
+            {
+                var v = o.CreatedLast14Days[i];
+                <div class="mt-bars__col" data-tip="@today.AddDays(i - 13).ToString("dd.MM."): @v">
+                    <span class="mt-bars__value">@(v > 0 ? v.ToString() : "")</span>
+                    <span class="mt-bars__bar @(v == 0 ? "is-zero" : "")" data-bar="@(v * 100 / max)"></span>
+                </div>
+            }
+        </div>
+        <div class="mt-bars__axis" aria-hidden="true">
+            @for (var i = 0; i < o.CreatedLast14Days.Count; i++)
+            {
+                <span>@today.AddDays(i - 13).ToString("dd.")</span>
+            }
+        </div>
+    </mt-card>
+
+    <mt-card title="Offen nach Abteilung" icon="briefcase">
+        @if (o.ByDepartment.Count == 0)
+        {
+            <div class="mat-empty"><span class="mat-empty__icon">@Ui.Icon("check")</span><div class="mat-empty__title">Alles erledigt</div></div>
+        }
+        else
+        {
+            <ul class="mt-hbars">
+                @foreach (var (name, count) in o.ByDepartment)
+                {
+                    <li class="mt-hbars__row">
+                        <span class="mt-hbars__label" title="@name">@name</span>
+                        <span class="mt-hbars__track"><span class="mt-hbars__bar" data-bar="@(count * 100 / maxDept)"></span></span>
+                        <span class="mt-hbars__value">@count</span>
+                    </li>
+                }
+            </ul>
+        }
+    </mt-card>
+</div>
+
+<div class="mt-split mt-split--half">
+    <mt-card title="Meine offenen Tickets" icon="user">
+        @if (Model.Mine.Count == 0)
+        {
+            <p class="mat-muted">Dir ist gerade nichts zugewiesen. <a href="/Tickets?scope=aktiv&bearbeiter=niemand">Tickets ohne Bearbeiter</a></p>
+        }
+        else
+        {
+            <ul class="mt-notes">
+                @foreach (var t in Model.Mine)
+                {
+                    <li class="mt-note">
+                        <span class="mt-note__icon">@Ui.Icon("ticket")</span>
+                        <div class="mt-note__body">
+                            <a class="mt-note__title" href="/Tickets/Details?id=@t.Id">@t.Subject</a>
+                            <span class="mt-note__meta">@t.Number · @Labels.Of(t.Status) · @Labels.Of(t.Priority)</span>
+                        </div>
+                        <span class="mt-note__end">@Fmt.Ago(t.LastActivityDate, now)</span>
+                    </li>
+                }
+            </ul>
+        }
+    </mt-card>
+
+    <mt-card title="Neu eingegangen" icon="inbox">
+        @if (Model.Newest.Count == 0)
+        {
+            <p class="mat-muted">Keine neuen Tickets.</p>
+        }
+        else
+        {
+            <ul class="mt-notes">
+                @foreach (var t in Model.Newest)
+                {
+                    <li class="mt-note">
+                        <span class="mt-note__icon mt-note__icon--info">@Ui.Icon("inbox")</span>
+                        <div class="mt-note__body">
+                            <a class="mt-note__title" href="/Tickets/Details?id=@t.Id">@t.Subject</a>
+                            <span class="mt-note__meta">@t.Number · @(t.Department?.Name ?? "ohne Abteilung") · @t.RequesterName</span>
+                        </div>
+                        <span class="mt-note__end">@Fmt.Ago(t.CreateDate, now)</span>
+                    </li>
+                }
+            </ul>
+        }
+    </mt-card>
+</div>

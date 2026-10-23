@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>MatTicket</RootNamespace>
+    <AssemblyName>MatTicket</AssemblyName>
+    <UserSecretsId>matticket</UserSecretsId>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.*">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <!-- Sign-in with Microsoft Entra ID (OpenID Connect); the settings come from the database, so a change needs no restart. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.*" />
+    <!-- Draws the QR code of the authenticator app set-up as SVG (pure managed, no external service) -->
+    <PackageReference Include="QRCoder" Version="1.*" />
+    <!-- The sync tasks read customers from Microsoft SQL Server (Navision / Business Central on premises) and MySQL / MariaDB; PostgreSQL comes with Npgsql. -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.*" />
+    <PackageReference Include="MySqlConnector" Version="2.*" />
+    <!-- Sends the mails of a ticket (received, answered) over SMTP (MIT licence). -->
+    <PackageReference Include="MailKit" Version="4.*" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MatTicket.Core\MatTicket.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MatTicket.Tests" />
+  </ItemGroup>
+
+</Project>
